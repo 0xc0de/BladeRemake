@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "BladeMap.h"
 
 #include <Framework/Geometry/Public/Polygon.h>
+#include <Framework/Geometry/Public/PolygonClipper.h>
 #include <Engine/Mesh/Public/StaticMeshResource.h>
 
 // Blade .BW file loader
@@ -36,37 +37,60 @@ struct FBladeWorld {
         FT_SimpleFace = 0x00001B59,    // 7001 Face without holes/portals
         FT_Portal     = 0x00001B5A,    // 7002 Transparent wall (hole/portal)
         FT_Face       = 0x00001B5B,    // 7003 Face with one hole/protal
-        FT_Unknown    = 0x00001B5C,    // 7004 Face with several holes/protals
+        FT_FaceBSP    = 0x00001B5C,    // 7004 Face with several holes/protals and BSP nodes
         FT_Skydome    = 0x00001B5D     // 7005 Sky
+    };
+
+    enum ENodeType {
+        NT_Node       = 0x00001F41,    // 8001
+        NT_TexInfo    = 0x00001F42,    // 8002
+        NT_Leaf       = 0x00001F43,    // 8003
+    };
+
+    struct FLeafIndices {
+        uint32 UnknownIndex;
+        TMutableArray< uint32 > Indices;
+    };
+
+    struct FBSPNode {
+        ENodeType Type;
+
+        FBSPNode * Children[ 2 ];  // NULL for leafs
+
+        // Only for nodes
+        FDPlane   Plane;
+
+        // Only for NT_TexInfo
+        uint64 UnknownSignature;
+        FString TextureName;
+        FDVec3 TexCoordAxis[ 2 ];
+        float TexCoordOffset[ 2 ];
+
+        // Only for leafs
+        TArrayList< FLeafIndices > Unknown;
+
+        // Leaf triangles
+        TMutableArray< FDVec3 > Vertices;
+        TMutableArray< unsigned int > Indices;
     };
 
     struct FFace {
         int Type;
         FDPlane Plane;
-        uint64 UnknownSignature;   // Только для фейсов с текстурой
+        uint64 UnknownSignature;    // Только для фейсов с текстурой
         FString TextureName;        // Только для фейсов с текстурой
         FDVec3 TexCoordAxis[2];     // Только для фейсов с текстурой
-        float TexCoordOffset[2];   // Только для фейсов с текстурой
-        TMutableArray< unsigned int > Indices;
+        float TexCoordOffset[2];    // Только для фейсов с текстурой
 
         // result mesh
         TMutableArray< FDVec3 > Vertices;
+        TMutableArray< unsigned int > Indices;
 
         int SectorIndex;
 
-        void Duplicate( FFace * _Dst ) {
-            _Dst->Type = Type;
-            _Dst->Plane = Plane;
-            _Dst->UnknownSignature = UnknownSignature;
-            _Dst->TextureName = TextureName;
-            _Dst->TexCoordAxis[0] = TexCoordAxis[0];
-            _Dst->TexCoordAxis[1] = TexCoordAxis[1];
-            _Dst->TexCoordOffset[0] = TexCoordOffset[0];
-            _Dst->TexCoordOffset[1] = TexCoordOffset[1];
-            _Dst->Indices = Indices;
-            _Dst->Vertices = Vertices;
-            _Dst->SectorIndex = SectorIndex;
-        }
+        TArrayList< FFace * > SubFaces;
+
+        FBSPNode * Root;
     };
 
     struct FPortal {
@@ -101,6 +125,8 @@ struct FBladeWorld {
 
     TMutableArray< FPortal * > Portals;
     TMutableArray< FFace * > Faces;
+    TMutableArray< FBSPNode * > BSPNodes;
+    TMutableArray< FBSPNode * > Leafs; // Temporary used on loading
 
     FAxisAlignedBox Bounds;
 
@@ -112,23 +138,19 @@ struct FBladeWorld {
 private:
     FFace * CreateFace();
     FPortal * CreatePortal();
+    FBSPNode * CreateBSPNode();
 
     void LoadFace( FFace * _Face, bool _LastSector, bool _LastFace );
     void LoadSimpleFace( FFace * _Face );
     void LoadPortalFace( FFace * _Face );
     void LoadFaceWithHole( FFace * _Face );
-    void LoadUnknownFace( FFace * _Face, bool _LastSector, bool _LastFace );
+    void LoadFaceBSP( FFace * _Face, bool _LastSector, bool _LastFace );
     void LoadSkydomeFace( FFace * _Face );
     void ReadIndices( TMutableArray< unsigned int > & _Indices );
     void ReadWinding( TPolygon< double > & _Winding );
-    void ReadFaceBSP_r( FFace * _Face );
-    void ReadFaceBSP( FFace * _Face );
-    void ReadBSPNode( struct BSPNode_Leaf & _Node, bool _Recursive );
-    void Read_BSPNode_Hard_begin();
-    void Read_BSPNode_Hard_end();
-    void Read_BSPNode_Simple_begin();
-    void Read_BSPNode_Leaf();
-    void Read_Plane();
+    FBSPNode * ReadBSPNode_r( FFace * _Face );
+    void CreateWindings_r( FBladeWorld::FFace * _Face, const TArrayList< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node );
+    void FilterWinding_r( FBladeWorld::FFace * _Face, FBSPNode * _Node, FBSPNode * _Leaf );
     void WorldGeometryPostProcess();
 
     FFileAbstract * File;

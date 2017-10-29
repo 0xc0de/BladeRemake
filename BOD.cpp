@@ -460,10 +460,10 @@ static void CreateDebugMesh() {
     Prim->SetZTest( true );
     for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
         for ( int j = 0 ; j < World.Sectors[i].Faces.Length() ; j++ ) {
-            FBladeWorld::FFace & f = World.Sectors[i].Faces[j];
-            if ( f.Type == FBladeWorld::FT_Portal ) {
-                for ( int k = 0 ; k < f.Indices.Length() ; k++ ) {
-                    FDVec3 & v = World.Vertices[ f.Indices[k] ];
+            FBladeWorld::FFace * f = World.Sectors[i].Faces[j];
+            if ( f->Type == FBladeWorld::FT_Portal ) {
+                for ( int k = 0 ; k < f->Indices.Length() ; k++ ) {
+                    FDVec3 & v = World.Vertices[ f->Indices[k] ];
                     Prim->EmitPoint( v.x*0.001f, -v.y*0.001f, -v.z*0.001f );
                 }
                 Prim->Flush();
@@ -502,6 +502,7 @@ static void CreateDebugMesh() {
 
     Prim->SetPrimitive( P_LineStrip );
     Prim->SetZTest( false );
+    Prim->SetColor(1,1,1,1);
     for ( int r = 0 ; r < 4 ; r++ ) {
         FCameraRecord * Rec = Record[r];
         for ( int i = 0 ; i < Rec->Frames.Length() ; i++ ) {
@@ -648,13 +649,14 @@ static void DebugWorldPicking() {
 
         FVec3 Vec = ( Segment.end - Segment.start ) * Result.Distance;
         float VecLength = FMath::Length( Vec );
-        const float SphereRadius = 0.3f;
+        const float SphereRadius = 0.6f;
         FVec3 Pos = Segment.start + ( VecLength > 0.0f ? ( Vec / VecLength ) * ( VecLength - 0.01f ) : FVec3(0.0f) ); // Shift little epsilon
 
         static FMaterialInstance * PickerMaterial = NULL;
         if ( !PickerMaterial ) {
+            FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Blade/StandardMaterial.json" );
             PickerMaterial = Material->CreateInstance();
-            PickerMaterial->Set( PickerMaterial->AddressOf( "SmpBaseColor" ), DefaultTexture );
+            //PickerMaterial->Set( PickerMaterial->AddressOf( "SmpBaseColor" ), DefaultTexture );
             FVec4 AmbientColor(1.0f);
             PickerMaterial->Set( PickerMaterial->AddressOf( "AmbientColor" ), AmbientColor );
         }
@@ -812,7 +814,7 @@ static void DebugSectorPortals( const FBladeWorld::FSector & Sector ) {
     // Draw sector portals
     for ( int j = 0 ; j < Sector.Portals.Length() ; j++ ) {
         FBladeWorld::FPortal * Portal = Sector.Portals[j];
-        DebugPortals->SetColor( 1,0,0,0.2f);
+        DebugPortals->SetColor( 0,0,1,0.2f);
         DebugPortals->SetPrimitive( P_TriangleFan );
         for ( int k = 0 ; k < Portal->Winding.Length() ; k++ ) {
             FDVec3 & v = Portal->Winding[ k ];
@@ -960,6 +962,7 @@ void FGame::OnInitialize() {
     RenderTarget->SetAmbientOcclusionMode( demo_ssao.GetBool() ? EAmbientOcclusion::SSAO16 : EAmbientOcclusion::OFF );
     if ( SkyboxTexture ) {
         RenderTarget->EnvProbeDebug = GResourceManager->CreateUnnamedResource< FTextureResource >();
+        //RenderTarget->EnvProbeDebug->GenerateEnvProbe( 7, GResourceManager->GetResource<FTextureResource>("*black*") );
         RenderTarget->EnvProbeDebug->GenerateEnvProbe( 7, SkyboxTexture );
         //RenderTarget->EnvProbeDebug->GenerateEnvProbe( 1, SkyboxTexture );
     }
