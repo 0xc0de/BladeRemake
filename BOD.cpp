@@ -286,9 +286,8 @@ static void CreateAreasAndPortals() {
 
             Winding.Resize( Portal->Winding.Length() );
             for ( int k = 0 ; k < Winding.Length() ; k++ ) {
-                Winding[k].x =  Portal->Winding[k].x*0.001f;
-                Winding[k].y = -Portal->Winding[k].y*0.001f;
-                Winding[k].z = -Portal->Winding[k].z*0.001f;
+                Winding[k] = Portal->Winding[k];
+                Winding[k] *= BLADE_COORD_SCALE;
             }
 
             FSpatialPortalComponent * SpatialPortal = Scene->CreateComponent< FSpatialPortalComponent >();
@@ -308,8 +307,8 @@ static void CreateCamera() {
 
     // Create camera
     Camera = CameraNode->CreateComponent< FCameraComponent >();
-    Camera->SetFovX( 100 );
-    //Camera->SetFovX( 80 );
+    //Camera->SetFovX( 100 );
+    Camera->SetFovX( 90 );
 
     // Camera collision test
     //FRigidBodyComponent * RigidBody = CameraNode->CreateComponent< FRigidBodyComponent >();
@@ -327,10 +326,16 @@ static void CreateSunLight() {
     // Attach directional light
     FLightComponent * Light = Node->CreateComponent< FLightComponent >();
     Light->SetType( FLightComponent::T_Direction );
+
+    //Light->SetColor( World.Atmospheres[2].Color[0]/* / 255.0f*/ * World.Atmospheres[2].Intensity,
+    //                 World.Atmospheres[2].Color[1]/* / 255.0f*/ * World.Atmospheres[2].Intensity,
+    //                 World.Atmospheres[2].Color[2]/* / 255.0f*/ * World.Atmospheres[2].Intensity );
     Light->SetColor( 1, 1, 1 );
-    Light->SetDirection( FVec3( -0.2f, -1, 0 ) );
+    Light->SetDirection( FVec3( 0.707107f, -0.707107f, 0.0f ) );
+    //Light->SetDirection( FVec3( -0.2f, -1, 0 ) );
+    //Light->SetLumens( 100 );
     Light->SetLumens( 1000 );
-    Light->SetTemperature( 10000 );
+    Light->SetTemperature( 6500 );
 }
 
 static void CreateWorldGeometry() {
@@ -364,7 +369,7 @@ static void CreateWorldGeometry() {
     DefaultTexture->Load();
 
     // Create world object
-    FSceneNode * WorldNode = Scene->CreateChild( "World" );
+    FSceneNode * WorldNode = Scene;//Scene->CreateChild( "World" );
     for ( int i = 0 ; i < World.MeshOffsets.Length() ; i++ ) {
         FMeshOffset & Ofs = World.MeshOffsets[i];
         FStaticMeshComponent * WorldRenderable = WorldNode->CreateComponent< FStaticMeshComponent >();
@@ -382,6 +387,11 @@ static void CreateWorldGeometry() {
             WorldRenderable->SetMaterialInstance( SkyboxMaterialInstance );
             WorldRenderable->EnableShadowCast( false );
         } else {
+
+            if ( Face->TextureName == "blanca" ) {
+                WorldRenderable->EnableShadowCast( false );
+            }
+
             FTextureResource * Texture = GResourceManager->GetResource< FTextureResource >( Face->TextureName.Str() );
             if ( !Texture->Load() ) {
                 Texture = DefaultTexture;
@@ -547,7 +557,6 @@ static void DebugCharacterSelection( float _TimeStep ) {
     static float Time = 999999.0f;
     static bool PlayState = false;
     static int curplayer = caballero;
-    float ts = 3;
     float PlayTimes[4] = {60,50,60,47}; // from selec.py (FrameCamera[])
     static float PlayTime;
 
@@ -702,7 +711,7 @@ static void DebugWorldPicking() {
 #endif
 }
 
-static void DebugKeypress() {
+static void DebugKeypress( float _TimeStep ) {
     if ( Window->IsKeyPressed( Key_Y, false ) ) {
         if ( RenderTarget->GetRenderMode() == ERenderMode::SolidTriangles ) {
             RenderTarget->SetRenderMode( ERenderMode::Solid );
@@ -723,6 +732,24 @@ static void DebugKeypress() {
 
     if ( Window->IsKeyPressed( Key_5, false ) ) {
         r_spatialCull.ToggleBool();
+    }
+
+    const float TurnSpeed = _TimeStep;
+    if ( Window->IsKeyDown( Key_LEFTARROW ) ) {
+        FSceneNode * Node = Scene->FindChild( "SunLight" );
+        Node->TurnLeftFPS( TurnSpeed );
+    }
+    if ( Window->IsKeyDown( Key_RIGHTARROW ) ) {
+        FSceneNode * Node = Scene->FindChild( "SunLight" );
+        Node->TurnRightFPS( TurnSpeed );
+    }
+    if ( Window->IsKeyDown( Key_UPARROW ) ) {
+        FSceneNode * Node = Scene->FindChild( "SunLight" );
+        Node->TurnUpFPS( TurnSpeed );
+    }
+    if ( Window->IsKeyDown( Key_DOWNARROW ) ) {
+        FSceneNode * Node = Scene->FindChild( "SunLight" );
+        Node->TurnDownFPS( TurnSpeed );
     }
 }
 
@@ -871,57 +898,20 @@ void FGame::OnInitialize() {
     enano_amazona[0].LoadRecord( MakePath( "Maps/Casa/Seleccion_Camera_enano_amazona.cam" ) );
     enano_amazona[1].LoadRecord( MakePath( "Maps/Casa/Seleccion_Camera_amazona_enano.cam" ) );
 
-    //LoadLevel( MakePath( "Maps/Casa/casa.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Casa/casa.sf" ) );
-
-    // Этот уровень загружается с ошибками
-    //LoadLevel( MakePath( "Maps/Mine_M5/mine.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Mine_M5/mine.sf" ) );
-
     //LoadLevel( MakePath( "Maps/Chaos_M17/chaos.lvl" ) );
     //LoadGhostSectors( MakePath( "Maps/Chaos_M17/ambiente.sf" ) );
 
     //LoadLevel( MakePath( "Maps/Btomb_M12/btomb.lvl" ) );
     //LoadGhostSectors( MakePath( "Maps/Btomb_M12/ambiente.sf" ) );
 
-    //LoadLevel( MakePath( "Maps/Island_M8/island.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Island_M8/island.sf" ) );
-
     //LoadLevel( MakePath( "Maps/Labyrinth_M6/labyr.lvl" ) );
     //LoadGhostSectors( MakePath( "Maps/Labyrinth_M6/sonidos.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Dwarf_M3/dwarf.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Dwarf_M3/dwarf.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Ice_M11/ice.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Ice_M11/ice.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Volcano_M14/volcano.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Volcano_M14/volcano.sf" ) );
 
     //LoadLevel( MakePath( "Maps/Orlok_M10/defile.lvl" ) );
     //LoadGhostSectors( MakePath( "Maps/Orlok_M10/exterior.sf" ) );
 
-    //LoadLevel( MakePath( "Maps/Tower_M16/tower.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Tower_M16/tower.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Ragnar_M2/ragnar.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Ragnar_M2/ragnar.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Tutorial/tutorial.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Tutorial/tutorial.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Desert_back/desert.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Desert_back/desert.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Barb_M1/barb.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Barb_M1/barb.sf" ) );
-
     //LoadLevel( MakePath( "Maps/Orc_M9/orcst.lvl" ) );
     //LoadGhostSectors( MakePath( "Maps/Orc_M9/orc.sf" ) );
-
-    //LoadLevel( MakePath( "Maps/Tomb_M7/tomb.lvl" ) );
-    //LoadGhostSectors( MakePath( "Maps/Tomb_M7/tomb.sf" ) );
 
     //LoadLevel( MakePath( "Maps/Ruins_M4/ruins.lvl" ) );
     //LoadGhostSectors( MakePath( "Maps/Ruins_M4/ruinssnd.sf" ) );
@@ -1178,7 +1168,7 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
 void FGame::OnUpdate( float _TimeStep ) {
     static int PrevSectorIndex = -1;
 
-    DebugKeypress();
+    DebugKeypress( _TimeStep );
     DebugCharacterSelection( _TimeStep );
     DebugWorldPicking();
     UpdateCameraMovement( _TimeStep );

@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 FBladeWorld World;
 
-static const double BLADE_COORD_SCALE = 1;//0.001;
+const FVec3 BLADE_COORD_SCALE( 0.001f, -0.001f, -0.001f );
 
 template<>
 void TTriangulatorHelper_ContourVertexPosition( FDVec3 & _Dst, const FDVec2 & _Src ) {
@@ -165,9 +165,12 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
             }
         }
 
-        DumpByte( File );
-        DumpByte( File );
-        DumpByte( File );
+        byte r,g,b;
+        r = DumpByte( File );
+        g = DumpByte( File );
+        b = DumpByte( File );
+
+        Out() << r << g << b;
 
         DumpFloat( File );
         DumpFloat( File );
@@ -190,10 +193,11 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
             }
         }
 
-        // Looks like vector
-        DumpDouble( File );
-        DumpDouble( File );
-        DumpDouble( File );
+        // Light direction?
+        Sector.LightDir.x = DumpDouble( File );
+        Sector.LightDir.y = -DumpDouble( File );
+        Sector.LightDir.z = -DumpDouble( File );
+        Sector.LightDir = FMath::Normalize( Sector.LightDir );
 
         SetDumpLog( true );
 
@@ -207,14 +211,12 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
             break;
         }
 
-        int FirstFace = Sector.Faces.Length();
+        Sector.Faces.Resize( FaceCount );
 
-        Sector.Faces.Resize( FirstFace + FaceCount );
-
-        for ( int FaceIndex = FirstFace ; FaceIndex < Sector.Faces.Length() ; FaceIndex++ ) {
+        for ( int FaceIndex = 0 ; FaceIndex < FaceCount ; FaceIndex++ ) {
             Sector.Faces[FaceIndex] = CreateFace();
             Sector.Faces[FaceIndex]->SectorIndex = SectorIndex;
-            LoadFace( Sector.Faces[FaceIndex], SectorIndex == Sectors.Length() - 1, FaceIndex == Sector.Faces.Length() - 1 );
+            LoadFace( Sector.Faces[FaceIndex] );
         }
     }
 
@@ -262,14 +264,16 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
     }
 
     //pos += __addStructureAt(pos, "Vertex", "");
-    Bounds.mins[0] = DumpDouble( File ) * 0.001f;
-    Bounds.mins[1] = -DumpDouble( File ) * 0.001f;
-    Bounds.mins[2] = -DumpDouble( File ) * 0.001f;
+    Bounds.mins[0] = DumpDouble( File );
+    Bounds.mins[1] = DumpDouble( File );
+    Bounds.mins[2] = DumpDouble( File );
+    Bounds.mins *= BLADE_COORD_SCALE;
 
     //pos += __addStructureAt(pos, "Vertex", "");
-    Bounds.maxs[0] = DumpDouble( File ) * 0.001f;
-    Bounds.maxs[1] = -DumpDouble( File ) * 0.001f;
-    Bounds.maxs[2] = -DumpDouble( File ) * 0.001f;    
+    Bounds.maxs[0] = DumpDouble( File );
+    Bounds.maxs[1] = DumpDouble( File );
+    Bounds.maxs[2] = DumpDouble( File );
+    Bounds.maxs *= BLADE_COORD_SCALE;
 
     //pos += secCount * 4;
     File->Seek( SectorsCount * 4, FFileAbstract::SeekCur );
@@ -300,7 +304,7 @@ FBladeWorld::FBSPNode * FBladeWorld::CreateBSPNode() {
     return BSPNodes.Last();
 }
 
-void FBladeWorld::LoadFace( FFace * _Face, bool _LastSector, bool _LastFace ) {
+void FBladeWorld::LoadFace( FFace * _Face ) {
     File->ReadSwapInt32( _Face->Type );
 
     switch ( _Face->Type ) {
@@ -318,7 +322,7 @@ void FBladeWorld::LoadFace( FFace * _Face, bool _LastSector, bool _LastFace ) {
             break;
         case FT_FaceBSP:
             Out() << "FaceBSP";
-            LoadFaceBSP( _Face, _LastSector, _LastFace );
+            LoadFaceBSP( _Face );
             break;
         case FT_Skydome:
             Out() << "Skydome";
@@ -639,7 +643,7 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArrayList
         Leafs.Append( _Node );
 
         return;
-	}
+    }
 
     TPolygon< double > * Front = NULL;
     TPolygon< double > * Back = NULL;
@@ -654,7 +658,7 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArrayList
     delete Back;
 }
 
-void FBladeWorld::LoadFaceBSP( FFace * _Face, bool _LastSector, bool _LastFace ) {
+void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
     // Face plane
     File->ReadSwapVector( _Face->Plane.normal );
     File->ReadSwapDouble( _Face->Plane.d );
@@ -740,30 +744,34 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face, bool _LastSector, bool _LastFace )
 
     // Create subfaces
     for ( int i = 0 ; i < Leafs.Length() ; i++ ) {
-        Leafs[i]->TextureName = _Face->TextureName;
-        Leafs[i]->TexCoordAxis[0] = _Face->TexCoordAxis[0];
-        Leafs[i]->TexCoordAxis[1] = _Face->TexCoordAxis[1];
-        Leafs[i]->TexCoordOffset[0] = _Face->TexCoordOffset[0];
-        Leafs[i]->TexCoordOffset[1] = _Face->TexCoordOffset[1];
+        if ( Leafs[i]->Vertices.Length() > 0 && Leafs[i]->Indices.Length() > 0 ) {
+            Leafs[i]->TextureName = _Face->TextureName;
+            Leafs[i]->TexCoordAxis[0] = _Face->TexCoordAxis[0];
+            Leafs[i]->TexCoordAxis[1] = _Face->TexCoordAxis[1];
+            Leafs[i]->TexCoordOffset[0] = _Face->TexCoordOffset[0];
+            Leafs[i]->TexCoordOffset[1] = _Face->TexCoordOffset[1];
 
-        FilterWinding_r( _Face, _Face->Root, Leafs[i] );
+            FilterWinding_r( _Face, _Face->Root, Leafs[i] );
 
-        FBladeWorld::FFace * SubFace = CreateFace();
-        SubFace->TextureName = Leafs[i]->TextureName;
-        SubFace->TexCoordAxis[ 0 ] = Leafs[i]->TexCoordAxis[ 0 ];
-        SubFace->TexCoordAxis[ 1 ] = Leafs[i]->TexCoordAxis[ 1 ];
-        SubFace->TexCoordOffset[ 0 ] = Leafs[i]->TexCoordOffset[ 0 ];
-        SubFace->TexCoordOffset[ 1 ] = Leafs[i]->TexCoordOffset[ 1 ];
-        SubFace->SectorIndex = _Face->SectorIndex;
-        SubFace->Plane = _Face->Plane;
-        SubFace->Vertices = Leafs[i]->Vertices;
-        SubFace->Indices = Leafs[i]->Indices;
+            FBladeWorld::FFace * SubFace = CreateFace();
+            SubFace->TextureName = Leafs[i]->TextureName;
+            SubFace->TexCoordAxis[ 0 ] = Leafs[i]->TexCoordAxis[ 0 ];
+            SubFace->TexCoordAxis[ 1 ] = Leafs[i]->TexCoordAxis[ 1 ];
+            SubFace->TexCoordOffset[ 0 ] = Leafs[i]->TexCoordOffset[ 0 ];
+            SubFace->TexCoordOffset[ 1 ] = Leafs[i]->TexCoordOffset[ 1 ];
+            SubFace->SectorIndex = _Face->SectorIndex;
+            SubFace->Plane = _Face->Plane;
+            SubFace->Vertices = Leafs[i]->Vertices;
+            SubFace->Indices = Leafs[i]->Indices;
 
-        _Face->SubFaces.Append( SubFace );
+            _Face->SubFaces.Append( SubFace );
+        } else {
+            Out() << "Leaf with no vertices";
+        }
     }
     Leafs.Clear();
 
-    assert( _Face->SubFaces.Length() > 0 );
+    //assert( _Face->SubFaces.Length() > 0 );
 }
 
 static void ConvertFacePlane( FDPlane & _Plane ) {
@@ -801,7 +809,7 @@ FBladeWorld::FBSPNode * FBladeWorld::ReadBSPNode_r( FFace * _Face ) {
         }
 
         return Node;
-	}    
+    }    
 
     Node->Children[0] = ReadBSPNode_r( _Face );
     Node->Children[1] = ReadBSPNode_r( _Face );
@@ -918,9 +926,9 @@ void FBladeWorld::WorldGeometryPostProcess() {
                     MeshOffset.StartIndexLocation = MeshIndices.Length();
 
                     for ( int v = 0 ; v < SubFace->Vertices.Length() ; v++ ) {
-                        Vertex.Position.x = SubFace->Vertices[ v ].x * BLADE_COORD_SCALE;
-                        Vertex.Position.y = SubFace->Vertices[ v ].y * BLADE_COORD_SCALE;
-                        Vertex.Position.z = SubFace->Vertices[ v ].z * BLADE_COORD_SCALE;
+                        Vertex.Position.x = SubFace->Vertices[ v ].x;
+                        Vertex.Position.y = SubFace->Vertices[ v ].y;
+                        Vertex.Position.z = SubFace->Vertices[ v ].z;
                         Vertex.Normal = Face->Plane.normal;
 
                         MeshVertices.Append( Vertex );
@@ -932,14 +940,12 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
                     MeshOffset.IndexCount = SubFace->Indices.Length();
 
-                    RecalcTextureCoords( SubFace, MeshVertices.ToPtr() + FirstVertex, SubFace->Vertices.Length(), 256, 256 );
+                    RecalcTextureCoords( SubFace, &MeshVertices[ FirstVertex ], SubFace->Vertices.Length(), 256, 256 );
 
                     for ( int v = 0 ; v < SubFace->Vertices.Length() ; v++ ) {
-                        FMeshVertex & Vert = MeshVertices.ToPtr()[ v + FirstVertex ];
+                        FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
 
-                        Vert.Position.y = -Vert.Position.y;
-                        Vert.Position.z = -Vert.Position.z;
-                        Vert.Position *= 0.001f;
+                        Vert.Position *= BLADE_COORD_SCALE;
 
                         Sector.Bounds.AddPoint( Vert.Position );
                     }
@@ -954,9 +960,9 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
                 if ( Face->Vertices.Length() > 0 ) {
                     for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
-                        Vertex.Position.x = Face->Vertices[ v ].x * BLADE_COORD_SCALE;
-                        Vertex.Position.y = Face->Vertices[ v ].y * BLADE_COORD_SCALE;
-                        Vertex.Position.z = Face->Vertices[ v ].z * BLADE_COORD_SCALE;
+                        Vertex.Position.x = Face->Vertices[ v ].x;
+                        Vertex.Position.y = Face->Vertices[ v ].y;
+                        Vertex.Position.z = Face->Vertices[ v ].z;
                         Vertex.Normal = Face->Plane.normal;
 
                         MeshVertices.Append( Vertex );
@@ -968,14 +974,12 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
                     MeshOffset.IndexCount = Face->Indices.Length();
 
-                    RecalcTextureCoords( Face, MeshVertices.ToPtr() + FirstVertex, Face->Vertices.Length(), 256, 256 );
+                    RecalcTextureCoords( Face, &MeshVertices[ FirstVertex ], Face->Vertices.Length(), 256, 256 );
 
                     for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
-                        FMeshVertex & Vert = MeshVertices.ToPtr()[ v + FirstVertex ];
+                        FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
 
-                        Vert.Position.y = -Vert.Position.y;
-                        Vert.Position.z = -Vert.Position.z;
-                        Vert.Position *= 0.001f;
+                        Vert.Position *= BLADE_COORD_SCALE;
 
                         Sector.Bounds.AddPoint( Vert.Position );
                     }
@@ -994,7 +998,7 @@ void FBladeWorld::WorldGeometryPostProcess() {
                     for ( int j = 0 ; j < Face->Indices.Length() ; j++ ) {
                         int Index = Face->Indices[ j ];
 
-                        Vertex.Position = Vertices[ Index ] * BLADE_COORD_SCALE;
+                        Vertex.Position = Vertices[ Index ];
                         Vertex.Normal = Face->Plane.normal;
 
                         MeshVertices.Append( Vertex );
@@ -1008,14 +1012,12 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
                     MeshOffset.IndexCount = ( Face->Indices.Length() - 2 ) * 3;
 
-                    RecalcTextureCoords( Face, MeshVertices.ToPtr() + FirstVertex, Face->Indices.Length(), 256, 256 );
+                    RecalcTextureCoords( Face, &MeshVertices[ FirstVertex ], Face->Indices.Length(), 256, 256 );
 
                     for ( int v = 0 ; v < Face->Indices.Length() ; v++ ) {
-                        FMeshVertex & Vert = MeshVertices.ToPtr()[ v + FirstVertex ];
+                        FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
 
-                        Vert.Position.y = -Vert.Position.y;
-                        Vert.Position.z = -Vert.Position.z;
-                        Vert.Position *= 0.001f;
+                        Vert.Position *= BLADE_COORD_SCALE;
 
                         Sector.Bounds.AddPoint( Vert.Position );
                     }

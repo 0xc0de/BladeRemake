@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // Blade .BW file loader
 
+extern const FVec3 BLADE_COORD_SCALE;
+
 struct FBladeWorld {
     enum EFaceType {
         FT_SimpleFace = 0x00001B59,    // 7001 Face without holes/portals
@@ -109,6 +111,8 @@ struct FBladeWorld {
         byte AmbientColor[ 3 ];
         float AmbientIntensity;
 
+        FVec3 LightDir;
+
         TArrayList< FFace * > Faces;
         TArrayList< FPortal * > Portals;
 
@@ -140,11 +144,11 @@ private:
     FPortal * CreatePortal();
     FBSPNode * CreateBSPNode();
 
-    void LoadFace( FFace * _Face, bool _LastSector, bool _LastFace );
+    void LoadFace( FFace * _Face );
     void LoadSimpleFace( FFace * _Face );
     void LoadPortalFace( FFace * _Face );
     void LoadFaceWithHole( FFace * _Face );
-    void LoadFaceBSP( FFace * _Face, bool _LastSector, bool _LastFace );
+    void LoadFaceBSP( FFace * _Face );
     void LoadSkydomeFace( FFace * _Face );
     void ReadIndices( TMutableArray< unsigned int > & _Indices );
     void ReadWinding( TPolygon< double > & _Winding );

@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "BladeCAM.h"
+#include "BladeWorld.h"
 #include "FileDump.h"
 
 #include <Framework/IO/Public/FileUrl.h>
@@ -60,9 +61,7 @@ void FCameraRecord::LoadRecord( const char * _FileName ) {
         Frame.Rotation = FMath::ToQuat( m );
 
         File->ReadSwapVector( Frame.Position );
-        Frame.Position.x *= 0.001f;
-        Frame.Position.y *= -0.001f;
-        Frame.Position.z *= -0.001f;
+        Frame.Position *= BLADE_COORD_SCALE;
 
         Frame.TimeScale = /*1.0f / */DumpFloat( File ); // what is it?
     }
