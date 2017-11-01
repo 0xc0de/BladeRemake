@@ -49,19 +49,9 @@ static const char * DomeNames[ 6 ] = {
 FTextureResource * LoadTexture( const char * _TextureName, const byte * _TrueColor, int _Width, int _Height ) {
     FTextureResource * Texture = GResourceManager->GetResource< FTextureResource >( _TextureName );
 
-    // FIXME: Blade keep textures transposed?
-//#define BLADE_TEXTURE_TRANSPOSED
-#ifdef BLADE_TEXTURE_TRANSPOSED
-    FImage img;
-    img.Create( _Width, _Height, EImagePixelFormat::RGB, true, _TrueColor );
-    //img.TransposeSelf();
-    img.FlipSelf( false, true );
-    Texture->UploadImage2D( img.GetData(), _Width, _Height, 3, true, true );
-#else
     Texture->UploadImage2D( _TrueColor, _Width, _Height, 3, true, true );
-#endif
 
-    Out() << "TEX_SIZE" << _Width << _Height;
+    Out() << "TEX_SIZE" << _Width << _Height << _TextureName;
 
     return Texture;
 }
@@ -251,8 +241,15 @@ FTextureResource * LoadDome( const char * _FileName ) {
         };
 
         const float Normalize = 1.0f / 255.0f;
+
+//#define SIMULATE_HDRI
+#ifdef SIMULATE_HDRI
         const float HDRI_Scale = 4.0f;
         const float HDRI_Pow = 1.1f;
+#else
+        const float HDRI_Scale = 1.0f;
+        const float HDRI_Pow = 1.0f;
+#endif
 
         switch ( Type ) {
         case TT_Palette:
