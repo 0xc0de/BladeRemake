@@ -372,6 +372,8 @@ static void CreateWorldGeometry() {
     FSceneNode * WorldNode = Scene;//Scene->CreateChild( "World" );
     for ( int i = 0 ; i < World.MeshOffsets.Length() ; i++ ) {
         FMeshOffset & Ofs = World.MeshOffsets[i];
+        FBladeWorld::FFace * Face = World.MeshFaces[i];
+
         FStaticMeshComponent * WorldRenderable = WorldNode->CreateComponent< FStaticMeshComponent >();
         WorldRenderable->SetMesh( WorldMesh );
         WorldRenderable->SetDrawRange( Ofs.IndexCount, Ofs.StartIndexLocation, Ofs.BaseVertexLocation );
@@ -381,16 +383,16 @@ static void CreateWorldGeometry() {
         }
         WorldRenderable->SetBounds( Bounds );
         WorldRenderable->SetUseCustomBounds( true );
-
-        FBladeWorld::FFace * Face = World.MeshFaces[i];
+        //WorldRenderable->EnableShadowCast( Face->CastShadows );
+        WorldRenderable->EnableShadowCast( false );
+        
         if ( Face->Type == FBladeWorld::FT_Skydome || Face->TextureName.Length() == 0 ) {
             WorldRenderable->SetMaterialInstance( SkyboxMaterialInstance );
-            WorldRenderable->EnableShadowCast( false );
         } else {
 
-            if ( Face->TextureName == "blanca" ) {
-                WorldRenderable->EnableShadowCast( false );
-            }
+            //if ( Face->TextureName == "blanca" ) {
+            //    ...
+            //}
 
             FTextureResource * Texture = GResourceManager->GetResource< FTextureResource >( Face->TextureName.Str() );
             if ( !Texture->Load() ) {
@@ -414,6 +416,21 @@ static void CreateWorldGeometry() {
             MaterialInstance->Set( MaterialInstance->AddressOf( "AmbientColor" ), AmbientColor );
             WorldRenderable->SetMaterialInstance( MaterialInstance );
         }
+    }
+
+    // Shadow caster as single mesh
+    if ( World.ShadowCasterMeshOffset.IndexCount > 0 ) {
+        FStaticMeshComponent * WorldRenderable = WorldNode->CreateComponent< FStaticMeshComponent >();
+        WorldRenderable->SetMesh( WorldMesh );
+        WorldRenderable->SetDrawRange( World.ShadowCasterMeshOffset.IndexCount, World.ShadowCasterMeshOffset.StartIndexLocation, World.ShadowCasterMeshOffset.BaseVertexLocation );
+        Bounds.Clear();
+        for ( int k = 0 ; k < World.ShadowCasterMeshOffset.IndexCount ; k++ ) {
+            Bounds.AddPoint( World.MeshVertices[ World.ShadowCasterMeshOffset.BaseVertexLocation + World.MeshIndices[ World.ShadowCasterMeshOffset.StartIndexLocation + k ] ].Position );
+        }
+        WorldRenderable->SetBounds( Bounds );
+        WorldRenderable->SetUseCustomBounds( true );
+        WorldRenderable->EnableShadowCast( true );
+        WorldRenderable->EnableLightPass( false );
     }
 
     // Create chunked mesh for world picking
@@ -928,6 +945,8 @@ void FGame::OnInitialize() {
     CreateWorldGeometry();
     CreateDebugMesh();
 
+    //GAudioSystem->SetMasterGain( 15.0f );
+
     Scene->SetDebugDrawFlags( 0 );
 
     RenderTexture = GResourceManager->CreateUnnamedResource< FTextureResource >();
@@ -1040,7 +1059,7 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
     ImGui::End();
     ImGui::PopStyleVar();
 #endif
-#if 1
+#if 0
     ImGui::SetNextWindowPos(ImVec2(0,0));
     ImGui::SetNextWindowSize( ImVec2(RenderTexture->GetWidth(),RenderTexture->GetHeight()) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
