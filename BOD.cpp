@@ -1052,12 +1052,7 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
         | ImGuiWindowFlags_NoScrollWithMouse
         | ImGuiWindowFlags_NoTitleBar ) ) {
 
-        //ImGui::SetWindowFontScale( 4 );
-        if ( r_spatialCull.GetBool() ) {
-            ImGui::Text( "FPS %d", RenderTarget->GetFPSAvg() );
-        } else {
-            ImGui::Text( "FPS %d", RenderTarget->GetFPSAvg() );
-        }        
+        ImGui::Text( "FPS %d", RenderTarget->GetFPSAvg() );
     }
     ImGui::End();
     ImGui::PopStyleColor();
