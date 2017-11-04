@@ -40,7 +40,8 @@ struct FBladeWorld {
         FT_Portal     = 0x00001B5A,    // 7002 Transparent wall (hole/portal)
         FT_Face       = 0x00001B5B,    // 7003 Face with one hole/protal
         FT_FaceBSP    = 0x00001B5C,    // 7004 Face with several holes/protals and BSP nodes
-        FT_Skydome    = 0x00001B5D     // 7005 Sky
+        FT_Skydome    = 0x00001B5D,    // 7005 Sky
+        FT_Subface    = 0xffffffff     // Used to mark subfaces
     };
 
     enum ENodeType {
@@ -83,6 +84,7 @@ struct FBladeWorld {
         FString TextureName;        // Только для фейсов с текстурой
         FDVec3 TexCoordAxis[2];     // Только для фейсов с текстурой
         float TexCoordOffset[2];    // Только для фейсов с текстурой
+        bool CastShadows;
 
         // result mesh
         TMutableArray< FDVec3 > Vertices;
@@ -126,6 +128,7 @@ struct FBladeWorld {
     TArrayList< FMeshVertex > MeshVertices;
     TArrayList< unsigned int > MeshIndices;
     TArrayList< FFace * > MeshFaces;
+    FMeshOffset ShadowCasterMeshOffset;
 
     TMutableArray< FPortal * > Portals;
     TMutableArray< FFace * > Faces;
