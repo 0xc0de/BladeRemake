@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <Framework/Geometry/Public/PolygonClipper.h>
 #include <Framework/IO/Public/FileUrl.h>
+#include <Framework/Containers/Public/Sort.h>
 
 FBladeWorld World;
 
@@ -754,6 +755,7 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
             FilterWinding_r( _Face, _Face->Root, Leafs[i] );
 
             FBladeWorld::FFace * SubFace = CreateFace();
+            SubFace->Type = FT_Subface;
             SubFace->TextureName = Leafs[i]->TextureName;
             SubFace->TexCoordAxis[ 0 ] = Leafs[i]->TexCoordAxis[ 0 ];
             SubFace->TexCoordAxis[ 1 ] = Leafs[i]->TexCoordAxis[ 1 ];
@@ -901,134 +903,117 @@ void FBladeWorld::WorldGeometryPostProcess() {
     MeshOffset.StartIndexLocation = 0;
     MeshOffset.IndexCount = 0;
 
+    ShadowCasterMeshOffset.BaseVertexLocation = 0;
+    ShadowCasterMeshOffset.StartIndexLocation = 0;
+    ShadowCasterMeshOffset.IndexCount = 0;
+
     for ( int SectorIndex = 0 ; SectorIndex < Sectors.Length() ; SectorIndex++ ) {
-        FBladeWorld::FSector & Sector = Sectors[ SectorIndex ];
+        FSector & Sector = Sectors[ SectorIndex ];
 
         Sector.Bounds.Clear();
+    }
 
-        for ( int i = 0; i < Sector.Faces.Length() ; i++ ) {
-            FBladeWorld::FFace * Face = Sector.Faces[ i ];
+    for ( int FaceIndex = 0 ; FaceIndex < Faces.Length() ; FaceIndex++ ) {
+        FFace * Face = Faces[ FaceIndex ];
+        Face->CastShadows = ( Face->Type != FT_Skydome && Face->TextureName.Length() != 0 && Face->TextureName != "blanca" );
+    }
 
-            ConvertFacePlane( Face->Plane );
-
-            if ( Face->Type == FT_Portal ) {
-                continue;
-            }
-
-            if ( Face->Type == FT_FaceBSP ) {
-                for ( int sf = 0; sf < Face->SubFaces.Length() ; sf++ ) {
-                    FBladeWorld::FFace * SubFace = Face->SubFaces[ sf ];
-
-                    assert( SubFace != Face );
-
-                    ConvertFacePlane( SubFace->Plane );
-
-                    MeshOffset.StartIndexLocation = MeshIndices.Length();
-
-                    for ( int v = 0 ; v < SubFace->Vertices.Length() ; v++ ) {
-                        Vertex.Position.x = SubFace->Vertices[ v ].x;
-                        Vertex.Position.y = SubFace->Vertices[ v ].y;
-                        Vertex.Position.z = SubFace->Vertices[ v ].z;
-                        Vertex.Normal = Face->Plane.normal;
-
-                        MeshVertices.Append( Vertex );
-                    }
-
-                    for ( int j = 0 ; j < SubFace->Indices.Length() ; j++ ) {
-                        MeshIndices.Append( FirstVertex + SubFace->Indices[ j ] );
-                    }
-
-                    MeshOffset.IndexCount = SubFace->Indices.Length();
-
-                    RecalcTextureCoords( SubFace, &MeshVertices[ FirstVertex ], SubFace->Vertices.Length(), 256, 256 );
-
-                    for ( int v = 0 ; v < SubFace->Vertices.Length() ; v++ ) {
-                        FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
-
-                        Vert.Position *= BLADE_COORD_SCALE;
-
-                        Sector.Bounds.AddPoint( Vert.Position );
-                    }
-
-                    FirstVertex += SubFace->Vertices.Length();
-
-                    MeshOffsets.Append( MeshOffset );
-                    MeshFaces.Append( SubFace );
-                }
-            } else {
-                MeshOffset.StartIndexLocation = MeshIndices.Length();
-
-                if ( Face->Vertices.Length() > 0 ) {
-                    for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
-                        Vertex.Position.x = Face->Vertices[ v ].x;
-                        Vertex.Position.y = Face->Vertices[ v ].y;
-                        Vertex.Position.z = Face->Vertices[ v ].z;
-                        Vertex.Normal = Face->Plane.normal;
-
-                        MeshVertices.Append( Vertex );
-                    }
-
-                    for ( int j = 0 ; j < Face->Indices.Length() ; j++ ) {
-                        MeshIndices.Append( FirstVertex + Face->Indices[ j ] );
-                    }
-
-                    MeshOffset.IndexCount = Face->Indices.Length();
-
-                    RecalcTextureCoords( Face, &MeshVertices[ FirstVertex ], Face->Vertices.Length(), 256, 256 );
-
-                    for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
-                        FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
-
-                        Vert.Position *= BLADE_COORD_SCALE;
-
-                        Sector.Bounds.AddPoint( Vert.Position );
-                    }
-
-                    FirstVertex += Face->Vertices.Length();
-
-                    MeshOffsets.Append( MeshOffset );
-                    MeshFaces.Append( Face );
-
-                } else {
-
-                    if ( Face->Indices.Length() < 3 ) {
-                        continue;
-                    }
-
-                    for ( int j = 0 ; j < Face->Indices.Length() ; j++ ) {
-                        int Index = Face->Indices[ j ];
-
-                        Vertex.Position = Vertices[ Index ];
-                        Vertex.Normal = Face->Plane.normal;
-
-                        MeshVertices.Append( Vertex );
-                    }
-
-                    for ( int j = 0 ; j < Face->Indices.Length() - 2 ; j++ ) {
-                        MeshIndices.Append( FirstVertex + 0 );
-                        MeshIndices.Append( FirstVertex + Face->Indices.Length() - j - 2 );
-                        MeshIndices.Append( FirstVertex + Face->Indices.Length() - j - 1 );
-                    }
-
-                    MeshOffset.IndexCount = ( Face->Indices.Length() - 2 ) * 3;
-
-                    RecalcTextureCoords( Face, &MeshVertices[ FirstVertex ], Face->Indices.Length(), 256, 256 );
-
-                    for ( int v = 0 ; v < Face->Indices.Length() ; v++ ) {
-                        FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
-
-                        Vert.Position *= BLADE_COORD_SCALE;
-
-                        Sector.Bounds.AddPoint( Vert.Position );
-                    }
-
-                    FirstVertex += Face->Indices.Length();
-                }
-
-                MeshOffsets.Append( MeshOffset );
-                MeshFaces.Append( Face );
-            }
+    class FaceSort : public TQuickSort< FFace *, FaceSort > {
+    public:
+        bool operator() ( FFace * _First, FFace * _Second ) {
+            return _First->CastShadows < _Second->CastShadows;
         }
+    };
+
+    FaceSort().Sort( Faces.ToPtr(), Faces.Length() );
+
+    for ( int FaceIndex = 0 ; FaceIndex < Faces.Length() ; FaceIndex++ ) {
+
+        FFace * Face = Faces[ FaceIndex ];
+        FSector & Sector = Sectors[ Face->SectorIndex ];
+
+        ConvertFacePlane( Face->Plane );
+
+        if ( Face->Type == FT_Portal || Face->Type == FT_FaceBSP ) {
+            continue;
+        }
+
+        if ( Face->Indices.Length() < 3 ) {
+            continue;
+        }
+
+        MeshOffset.StartIndexLocation = MeshIndices.Length();
+
+        if ( Face->Vertices.Length() > 0 ) {
+            for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
+                Vertex.Position.x = Face->Vertices[ v ].x;
+                Vertex.Position.y = Face->Vertices[ v ].y;
+                Vertex.Position.z = Face->Vertices[ v ].z;
+                Vertex.Normal = Face->Plane.normal;
+
+                MeshVertices.Append( Vertex );
+            }
+
+            for ( int j = 0 ; j < Face->Indices.Length() ; j++ ) {
+                MeshIndices.Append( FirstVertex + Face->Indices[ j ] );
+            }
+
+            MeshOffset.IndexCount = Face->Indices.Length();
+
+            RecalcTextureCoords( Face, &MeshVertices[ FirstVertex ], Face->Vertices.Length(), 256, 256 );
+
+            for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
+                FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
+
+                Vert.Position *= BLADE_COORD_SCALE;
+
+                Sector.Bounds.AddPoint( Vert.Position );
+            }
+
+            FirstVertex += Face->Vertices.Length();
+
+        } else {
+            for ( int j = 0 ; j < Face->Indices.Length() ; j++ ) {
+                int Index = Face->Indices[ j ];
+
+                Vertex.Position = Vertices[ Index ];
+                Vertex.Normal = Face->Plane.normal;
+
+                MeshVertices.Append( Vertex );
+            }
+
+            // triangle fan -> triangles
+            for ( int j = 0 ; j < Face->Indices.Length() - 2 ; j++ ) {
+                MeshIndices.Append( FirstVertex + 0 );
+                MeshIndices.Append( FirstVertex + Face->Indices.Length() - j - 2 );
+                MeshIndices.Append( FirstVertex + Face->Indices.Length() - j - 1 );
+            }
+
+            MeshOffset.IndexCount = ( Face->Indices.Length() - 2 ) * 3;
+
+            RecalcTextureCoords( Face, &MeshVertices[ FirstVertex ], Face->Indices.Length(), 256, 256 );
+
+            for ( int v = 0 ; v < Face->Indices.Length() ; v++ ) {
+                FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
+
+                Vert.Position *= BLADE_COORD_SCALE;
+
+                Sector.Bounds.AddPoint( Vert.Position );
+            }
+
+            FirstVertex += Face->Indices.Length();
+        }
+
+        if ( Face->CastShadows ) {
+            if ( ShadowCasterMeshOffset.IndexCount == 0 ) {
+                ShadowCasterMeshOffset.StartIndexLocation = MeshOffset.StartIndexLocation;
+            }
+
+            ShadowCasterMeshOffset.IndexCount += MeshOffset.IndexCount;
+        }
+
+        MeshOffsets.Append( MeshOffset );
+        MeshFaces.Append( Face );
     }
 
     CalcTangentSpace( MeshVertices.ToPtr(), MeshVertices.Length(), MeshIndices.ToPtr(), MeshIndices.Length() );
