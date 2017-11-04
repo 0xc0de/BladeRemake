@@ -255,6 +255,8 @@ static void CreateAreasAndPortals() {
         Areas[i] = Scene->CreateComponent< FSpatialAreaComponent >();
         Areas[i]->SetPosition( World.Sectors[i].Bounds.Center() );
         Areas[i]->SetBox( World.Sectors[i].Bounds.Size() + FVec3(0.01f) );
+        Areas[i]->SetUseReferencePoint( true );
+        Areas[i]->SetReferencePoint( World.Sectors[i].Centroid );
     }
 
     for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
@@ -945,6 +947,7 @@ void FGame::OnInitialize() {
     CreateWorldGeometry();
     CreateDebugMesh();
 
+    GAudioSystem->SetMasterGain( 0.0f );
     //GAudioSystem->SetMasterGain( 15.0f );
 
     Scene->SetDebugDrawFlags( 0 );
@@ -1034,6 +1037,32 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
 
     ImGui::SetMouseCursor( ImGuiMouseCursor_None );
 
+#if 1
+    ImGui::SetNextWindowPos(ImVec2(0,0));
+    ImGui::SetNextWindowSize( ImVec2(RenderTexture->GetWidth(),RenderTexture->GetHeight()) );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+    ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4(0,0,0,0) );
+    if ( ImGui::Begin( "Background", NULL, ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ImGuiWindowFlags_NoInputs
+        | ImGuiWindowFlags_NoMove
+        | ImGuiWindowFlags_NoResize
+        | ImGuiWindowFlags_NoSavedSettings
+        | ImGuiWindowFlags_NoScrollbar
+        | ImGuiWindowFlags_NoScrollWithMouse
+        | ImGuiWindowFlags_NoTitleBar ) ) {
+
+        //ImGui::SetWindowFontScale( 4 );
+        if ( r_spatialCull.GetBool() ) {
+            ImGui::Text( "FPS %d", RenderTarget->GetFPSAvg() );
+        } else {
+            ImGui::Text( "FPS %d", RenderTarget->GetFPSAvg() );
+        }        
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+#endif
 #if 0
     ImGui::SetNextWindowPos(ImVec2(0,0));
     ImGui::SetNextWindowSize( ImVec2(650,150) );
