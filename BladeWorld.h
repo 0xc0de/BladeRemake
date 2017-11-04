@@ -119,6 +119,7 @@ struct FBladeWorld {
         TArrayList< FPortal * > Portals;
 
         FAxisAlignedBox Bounds;
+        FVec3 Centroid;
     };
 
     TArrayList< FBladeMap::FAtmosphereEntry > Atmospheres;

@@ -907,10 +907,16 @@ void FBladeWorld::WorldGeometryPostProcess() {
     ShadowCasterMeshOffset.StartIndexLocation = 0;
     ShadowCasterMeshOffset.IndexCount = 0;
 
+    TMutableArray< int > VerticesCounts;
+    VerticesCounts.Resize( Sectors.Length() );
+
     for ( int SectorIndex = 0 ; SectorIndex < Sectors.Length() ; SectorIndex++ ) {
         FSector & Sector = Sectors[ SectorIndex ];
 
         Sector.Bounds.Clear();
+        Sector.Centroid = FVec3(0);
+
+        VerticesCounts[ SectorIndex ] = 0;
     }
 
     for ( int FaceIndex = 0 ; FaceIndex < Faces.Length() ; FaceIndex++ ) {
@@ -931,6 +937,7 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
         FFace * Face = Faces[ FaceIndex ];
         FSector & Sector = Sectors[ Face->SectorIndex ];
+        int & VerticesCount = VerticesCounts[ Face->SectorIndex ];
 
         ConvertFacePlane( Face->Plane );
 
@@ -968,6 +975,8 @@ void FBladeWorld::WorldGeometryPostProcess() {
                 Vert.Position *= BLADE_COORD_SCALE;
 
                 Sector.Bounds.AddPoint( Vert.Position );
+                Sector.Centroid += Vert.Position;
+                VerticesCount++;
             }
 
             FirstVertex += Face->Vertices.Length();
@@ -999,6 +1008,8 @@ void FBladeWorld::WorldGeometryPostProcess() {
                 Vert.Position *= BLADE_COORD_SCALE;
 
                 Sector.Bounds.AddPoint( Vert.Position );
+                Sector.Centroid += Vert.Position;
+                VerticesCount++;
             }
 
             FirstVertex += Face->Indices.Length();
@@ -1017,6 +1028,10 @@ void FBladeWorld::WorldGeometryPostProcess() {
     }
 
     CalcTangentSpace( MeshVertices.ToPtr(), MeshVertices.Length(), MeshIndices.ToPtr(), MeshIndices.Length() );
+
+    for ( int SectorIndex = 0 ; SectorIndex < Sectors.Length() ; SectorIndex++ ) {
+        Sectors[ SectorIndex ].Centroid *= 1.0f / VerticesCounts[ SectorIndex ];
+    }
 }
 
 void FBladeWorld::FreeWorld() {
