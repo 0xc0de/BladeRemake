@@ -910,6 +910,9 @@ void FBladeWorld::WorldGeometryPostProcess() {
     TMutableArray< int > VerticesCounts;
     VerticesCounts.Resize( Sectors.Length() );
 
+    Bounds.Clear();
+    HasSky = false;
+
     for ( int SectorIndex = 0 ; SectorIndex < Sectors.Length() ; SectorIndex++ ) {
         FSector & Sector = Sectors[ SectorIndex ];
 
@@ -921,7 +924,21 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
     for ( int FaceIndex = 0 ; FaceIndex < Faces.Length() ; FaceIndex++ ) {
         FFace * Face = Faces[ FaceIndex ];
-        Face->CastShadows = ( Face->Type != FT_Skydome && Face->TextureName.Length() != 0 && Face->TextureName != "blanca" );
+        FSector & Sector = Sectors[ Face->SectorIndex ];
+
+        if ( Face->Type == FT_Skydome ) {
+            Face->CastShadows = false;
+            HasSky = true;
+        } else if ( Face->TextureName.Length() == 0 ) {
+            Face->CastShadows = false;
+        } else if ( Face->TextureName == "blanca" ) {
+            Face->CastShadows = false;
+            HasSky = true;
+        } else if ( Sector.Portals.Length() == 0 ) {
+            Face->CastShadows = false;
+        } else {
+            Face->CastShadows = true;
+        }
     }
 
     class FaceSort : public TQuickSort< FFace *, FaceSort > {
@@ -1031,6 +1048,8 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
     for ( int SectorIndex = 0 ; SectorIndex < Sectors.Length() ; SectorIndex++ ) {
         Sectors[ SectorIndex ].Centroid *= 1.0f / VerticesCounts[ SectorIndex ];
+
+        Bounds.AddAABB( Sectors[ SectorIndex ].Bounds );
     }
 }
 

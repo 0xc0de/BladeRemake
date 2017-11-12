@@ -137,6 +137,7 @@ struct FBladeWorld {
     TMutableArray< FBSPNode * > Leafs; // Temporary used on loading
 
     FAxisAlignedBox Bounds;
+    bool HasSky;
 
     ~FBladeWorld();
 
