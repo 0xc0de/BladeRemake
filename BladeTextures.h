@@ -33,4 +33,4 @@ FTextureResource * LoadTexture( const char * _TextureName, const byte * _TrueCol
 void LoadTextures( const char * _FileName );
 
 // Load Skydome from .MMP file
-FTextureResource * LoadDome( const char * _FileName );
+FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg = NULL );

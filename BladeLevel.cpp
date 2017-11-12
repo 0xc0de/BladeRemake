@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <Framework/IO/Public/FileUrl.h>
 
 FTextureResource * SkyboxTexture;
+FVec3 SkyColorAvg;
 
 // Skip sequences of //
 static void FixPath( char * _Path ) {
@@ -81,7 +82,7 @@ void LoadLevel( const char * _FileName ) {
         if ( !FString::CmpCase( Key, "Bitmaps" ) ) {
             LoadTextures( FinalFileName.Str() );
         } else if ( !FString::CmpCase( Key, "WorldDome" ) ) {
-            SkyboxTexture = LoadDome( FinalFileName.Str() );
+            SkyboxTexture = LoadDome( FinalFileName.Str(), &SkyColorAvg );
         } else if ( !FString::CmpCase( Key, "World" ) ) {
             World.LoadWorld( FinalFileName.Str() );
         } else {
@@ -95,6 +96,6 @@ void LoadLevel( const char * _FileName ) {
         // Try to load default dome
         FString DomeName = _FileName;
         DomeName.StripExt().Concat( "_d.mmp" );
-        SkyboxTexture = LoadDome( DomeName.Str() );
+        SkyboxTexture = LoadDome( DomeName.Str(), &SkyColorAvg );
     }
 }

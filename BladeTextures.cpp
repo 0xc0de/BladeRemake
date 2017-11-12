@@ -164,7 +164,7 @@ AN_FORCEINLINE float ConvertToRGB( const float & _sRGB ) {
 }
 
 // Load Skydome from .MMP file
-FTextureResource * LoadDome( const char * _FileName ) {
+FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg ) {
     FFileAbstract * File = FFiles::OpenFileFromUrl( _FileName, FFileAbstract::M_Read );
 
     if ( !File ) {
@@ -242,7 +242,7 @@ FTextureResource * LoadDome( const char * _FileName ) {
 
         const float Normalize = 1.0f / 255.0f;
 
-//#define SIMULATE_HDRI
+#define SIMULATE_HDRI
 #ifdef SIMULATE_HDRI
         const float HDRI_Scale = 4.0f;
         const float HDRI_Pow = 1.1f;
@@ -302,8 +302,20 @@ FTextureResource * LoadDome( const char * _FileName ) {
 
         delete[] TextureData;
 
-        if ( DomeFace == 2 ) {
+        if ( DomeFace == 2 ) {  // Up
             FImageUtils::FlipBuffer( Desc.Lods[DomeFace].Pixels, Width, Height, 3 * 4, Width*3 * 4, true, false );
+
+            if ( _SkyColorAvg ) {
+                *_SkyColorAvg = FVec3(0.0f);
+                int Count = Width * Height * 3;
+                float * TrueColor = (float *)Lods[ DomeFace ].Pixels;
+                for ( int j = 0; j < Count ; j += 3 ) {
+                    _SkyColorAvg->r += TrueColor[ j + 2 ];
+                    _SkyColorAvg->g += TrueColor[ j + 1 ];
+                    _SkyColorAvg->b += TrueColor[ j + 0 ];
+                }
+                *_SkyColorAvg /= Count;
+            }
         } else {
             FImageUtils::FlipBuffer( Desc.Lods[DomeFace].Pixels, Width, Height, 3 * 4, Width*3 * 4, false, true );
         }
