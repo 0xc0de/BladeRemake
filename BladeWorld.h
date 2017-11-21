@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <Framework/Geometry/Public/Polygon.h>
 #include <Framework/Geometry/Public/PolygonClipper.h>
-#include <Engine/Mesh/Public/StaticMeshResource.h>
+#include <Engine/Renderer/Public/StaticMeshResource.h>
 
 // Blade .BW file loader
 

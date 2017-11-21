@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Engine/Material/Public/TextureResource.h>
+#include <Engine/Renderer/Public/TextureResource.h>
 
 // Load .LVL file
 void LoadLevel( const char * _FileName );
