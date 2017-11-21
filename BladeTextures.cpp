@@ -224,7 +224,8 @@ FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg ) {
             continue;
         }
 
-        Lods[ DomeFace ].ByteLength = Lods[ DomeFace ].HWMemUsage = Width * Height * 3;
+        Lods[ DomeFace ].ByteLength = Width * Height * 3 * sizeof( float );
+        Lods[ DomeFace ].HWMemUsage = Lods[ DomeFace ].ByteLength >> 1;
 
         Desc.ByteLength += Lods[ DomeFace ].ByteLength;
 
@@ -329,5 +330,35 @@ FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg ) {
         delete [] (float *)Desc.Lods[DomeFace].Pixels;
     }
 
+    return Texture;
+}
+
+FTextureResource * CreateWhiteCubemap() {
+    FTextureDesc Desc;
+    FTextureLodDesc Lods[ 6 ];
+    Desc.ByteLength = 0;
+    Desc.NumLods = 1;
+    Desc.Dimension = SAMPLER_DIM_CUBEMAP;
+    Desc.ColorSpace = SAMPLER_RGBA;
+    Desc.InternalPixelFormat = GHI_IPF_RGB8;
+    Desc.PixelFormat = GHI_PF_UByte_BGR;
+    Desc.NumLayers = 6;
+    Desc.Width = 1;
+    Desc.Height = 1;
+    Desc.Lods = Lods;
+    Desc.ByteLength = 6 * 3;
+
+    memset( Lods, 0, sizeof( Lods ) );
+
+    const byte Color[3] = { 255,255,255 };
+
+    for ( int i = 0 ; i < 6 ; i++ ) {
+        Lods[ i ].ByteLength = 3;
+        Lods[ i ].HWMemUsage = 3;
+        Lods[ i ].Pixels = (void *)&Color[0];
+    }
+
+    FTextureResource * Texture = GResourceManager->CreateUnnamedResource< FTextureResource >();
+    Texture->UploadImage( Desc );
     return Texture;
 }

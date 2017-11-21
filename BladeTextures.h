@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Engine/Material/Public/TextureResource.h>
+#include <Engine/Renderer/Public/TextureResource.h>
 
 // Load texture from memory
 FTextureResource * LoadTexture( const char * _TextureName, const byte * _TrueColor, int _Width, int _Height ) ;
@@ -34,3 +34,5 @@ void LoadTextures( const char * _FileName );
 
 // Load Skydome from .MMP file
 FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg = NULL );
+
+FTextureResource * CreateWhiteCubemap();
