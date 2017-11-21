@@ -30,6 +30,7 @@ void SetDumpLog( bool _Enable );
 void DumpUnknownBytes( FFileAbstract * _File, int _BytesCount );
 void DumpIntOrFloat( FFileAbstract * _File );
 int32 DumpInt( FFileAbstract * _File );
+int16 DumpShort( FFileAbstract * _File );
 int32 DumpIntNotSeek( FFileAbstract * _File );
 int32 DumpByte( FFileAbstract * _File );
 float DumpFloat( FFileAbstract * _File );

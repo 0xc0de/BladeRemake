@@ -61,6 +61,16 @@ int32 DumpInt( FFileAbstract * _File ) {
     return Unknown;
 }
 
+int16 DumpShort( FFileAbstract * _File ) {
+    int16 Unknown;
+    byte * pUnknown = (byte *)&Unknown;
+    _File->ReadSwapInt16( Unknown );
+    if ( DumpLogEnabled ) {
+        Out() << FMath::ToHexString( _File->Tell() - 2, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true );
+    }
+    return Unknown;
+}
+
 int32 DumpIntNotSeek( FFileAbstract * _File ) {
     int32 Unknown;
     byte * pUnknown = (byte *)&Unknown;
