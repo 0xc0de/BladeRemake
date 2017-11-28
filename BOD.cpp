@@ -29,40 +29,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "BladeCSV.h"
 #include "BladeSF.h"
 #include "BladeCAM.h"
+#include "BladeTunes.h"
+#include "BladeModel.h"
 #include "World.h"
 #include "ImGuiAPI.h"
+#include "Common.h"
 
-#include <Framework/Platform/Public/PlatformWindow.h>
-#include <Framework/Platform/Public/Thread.h>
-#include <Framework/Platform/Public/Atomic.h>
-#include <Framework/IO/Public/Logger.h>
-#include <Framework/IO/Public/Document.h>
 #include <Framework/IO/Public/FileUrl.h>
-#include <Framework/IO/Public/FileMemory.h>
-#include <Framework/Memory/Public/Alloc.h>
 #include <Framework/Math/Public/ColorSpace.h>
 #include <Framework/Cmd/Public/CmdManager.h>
-#include <Framework/Cmd/Public/VarManager.h>
 
 #include <Engine/EntryDecl.h>
-#include <Engine/Window.h>
 
-#include <Engine/Mesh/Public/StaticMeshComponent.h>
-#include <Engine/Mesh/Public/SkinnedMeshComponent.h>
-#include <Engine/Mesh/Public/SkinnedAnimComponent.h>
-#include <Engine/Mesh/Public/StaticMeshResource.h>
-#include <Engine/Mesh/Public/SkinnedAnimResource.h>
-#include <Engine/Mesh/Public/DynamicMesh.h>
-
-#include <Engine/Scene/Public/PrimitiveBatchComponent.h>
-#include <Engine/Scene/Public/SpatialTreeComponent.h>
-#include <Engine/Scene/Public/CameraComponent.h>
-#include <Engine/Scene/Public/PlaneGridComponent.h>
-#include <Engine/Scene/Public/SkyboxComponent.h>
-#include <Engine/Scene/Public/LightComponent.h>
-#include <Engine/Scene/Public/LogicComponent.h>
-
-#include <Engine/AI/Public/ChunkedMeshComponent.h>
+#include <Engine/Renderer/Public/StaticMeshComponent.h>
+#include <Engine/Renderer/Public/LightComponent.h>
+#include <Engine/Renderer/Public/EnvCaptureComponent.h>
 
 #include <Engine/Audio/Public/AudioResource.h>
 #include <Engine/Audio/Public/AudioComponent.h>
@@ -71,16 +52,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <Engine/Audio/Public/AudioSystem.h>
 
 #include <Engine/Physics/Public/PhysicsComponent.h>
-#include <Engine/Physics/Public/RigidBodyComponent.h>
-#include <Engine/Physics/Public/CollisionShapeComponent.h>
-
-#include <Engine/Renderer/Public/Renderer.h>
-#include <Engine/Renderer/Public/SpatialTreeProxy.h>
 
 #include <Engine/Resource/Public/ResourceManager.h>
-
-#include <Engine/Material/Public/TextureResource.h>
-#include <Engine/Material/Public/MaterialResource.h>
 
 //#define UNLIT
 //#define DEBUG_BLADE_MP_SECTORS
@@ -110,6 +83,8 @@ static FCameraComponent *       Camera;             // View camera
 static FTextureResource *       RenderTexture;      // Render target texture
 static FRenderTarget *          RenderTarget;       // Render target owner
 static FChunkedMeshComponent *  ChunkedMesh;        // Optimized world mesh storage for fast world-ray intersection
+static FBladeTunes              Tunes;
+static FBladeModel              Model;
 
 // For camera record debugging
 static FCameraRecord amazona_barbaro[2];        // amazona   -> barbaro,   barbaro   -> amazona
@@ -155,7 +130,7 @@ static void CreateAudioForSector( const FBladeSF::FGhostSector & _Sector ) {
 
 #if 0
     // Create trigger based on sector convex hull
-    TMutableArray<FVec3> VertexSoup;
+    TPodArray<FVec3> VertexSoup;
     for ( int j = 0 ; j < VerticesCount ; j++ ) {
         const FVec2 & v = Sector.Vertices[ j ];
         VertexSoup.Append( FVec3( v.x, Sector.FloorHeight, v.y ) );
@@ -190,8 +165,7 @@ static void CreateAudioForSector( const FBladeSF::FGhostSector & _Sector ) {
     Audio->SetTag( SND_SOUND );
     Audio->SetLooping( true );
     Audio->SetRelativeToListener( false );
-    //Audio->SetGain( 1 );
-    Audio->SetGain( _Sector.Volume );
+    Audio->SetGain( _Sector.Volume * 10.0f );
     Audio->SetRolloffFactor( 1 );
     Audio->SetReferenceDistance( _Sector.MinDist * 0.001f );
     Audio->Play();
@@ -243,12 +217,12 @@ static void LoadMusic() {
     Source->SetLooping( true );
     Source->SetTag( SND_MUSIC );
     Source->SetRelativeToListener( true );
-    Source->SetGain( 0.2f );
+    Source->SetGain( 0.4f );
     Source->Play();
 }
 
 static void CreateAreasAndPortals() {
-    TMutableArray< FSpatialAreaComponent * > Areas;
+    TPodArray< FSpatialAreaComponent * > Areas;
 
     Areas.Resize( World.Sectors.Length() );
     for ( int i = 0 ; i < Areas.Length() ; i++ ) {
@@ -300,9 +274,11 @@ static void CreateAreasAndPortals() {
 }
 
 static void CreateCamera() {
+    FMonitor * PrimaryMonitor = GPlatformPort->GetPrimaryMonitor();
+
     // Create camera object
     CameraNode = Scene->CreateChild( "Camera" );
-    CameraNode->SetPosition( 0, 2, 5 );
+    CameraNode->SetPosition( World.Bounds.Center() );
 
     // Attach audio listener to camera
     CameraNode->CreateComponent< FAudioListenerComponent >();
@@ -312,15 +288,254 @@ static void CreateCamera() {
     //Camera->SetFovX( 100 );
     Camera->SetFovX( 90 );
 
-    // Camera collision test
-    //FRigidBodyComponent * RigidBody = CameraNode->CreateComponent< FRigidBodyComponent >();
-    //RigidBody->SetKinematic( true );
-    //RigidBody->SetMass( 1 );
-    //FCollisionShapeComponent * CollisionShape = CameraNode->CreateComponent< FCollisionShapeComponent >();
-    //CollisionShape->SetSphere( 1.0f );
+    Camera->SetPerspectiveAdjust( FCameraComponent::ADJ_FOV_X_ASPECT_RATIO );
+
+    if ( demo_fullscreen.GetBool() ) {
+        Camera->SetMonitorAspectRatio( PrimaryMonitor );
+    } else {
+        Camera->SetWindowAspectRatio( Window->GetPlatformWindow() );
+    }
+
+    //FLightComponent * CameraLight = CameraNode->CreateComponent< FLightComponent >();
+    //CameraLight->SetType( FLightComponent::T_Point );
+    //CameraLight->SetOuterRadius( 10 );
+    //CameraLight->SetColor(1,1,1);
+
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/3dObjs.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/bolarayos.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/CilindroMagico.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/CilindroMagico2.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/CilindroMagico3.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/conos.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/dalblade.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/esferagemaazul.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/esferagemaroja.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/esferagemaverde.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/esferanegra.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/esferaorbital.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/espectro.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/firering.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/genericos.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/halfmoontrail.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/luzdivina.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/magicshield.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/nube.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/objetos_p.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/ondaexpansiva.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/Pfern.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/pmiguel.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/rail.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/telaranya.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/vortice.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DObjs/weapons.mmp" );
+
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/Actors.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/actors_javi.mmp" );
+
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/ork.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/Bar.mmp" );
+
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/Kgt.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/Kgtskin1.mmp" );
+    LoadTextures( "E:/Games/Blade of Darkness/3DChars/Kgtskin2.mmp" );
+    
+    
+
+    FSceneNode * Node = Scene->CreateChild( "test_model" );
+    //Node->SetPosition(0,0,-3);
+    //Node->SetPosition(-2,10,1);
+    Node->SetPosition(0,2,0);
+    Node->SetScale(1.0f);
+    Node->SetAngles(90,0,0);
+
+    FStaticMeshResource * Mesh = Model.Resource;
+
+    FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Blade/StandardMaterial.json" );
+    Material->Load();
+
+    FAxisAlignedBox Bounds;
+    for ( int i = 0 ; i < Mesh->GetMeshOffsets().Length() ; i++ ) {
+        FSceneNode * Part = Node->CreateChild( "part" );
+
+        Part->SetPosition( float(i), 0, 0 );
+
+        const FMeshOffset & Offset = Mesh->GetMeshOffsets()[i];
+
+        FStaticMeshComponent * Renderable = Part->CreateComponent< FStaticMeshComponent >();
+    
+        Renderable->SetMesh( Mesh );
+        Renderable->EnableShadowCast( true );
+        Renderable->EnableLightPass( true );
+        Renderable->SetDrawRange( Offset.IndexCount, Offset.StartIndexLocation, Offset.BaseVertexLocation );
+
+        Bounds.Clear();
+        for ( int k = 0 ; k < Offset.IndexCount ; k++ ) {
+            Bounds.AddPoint( Mesh->GetVertices()[ Offset.BaseVertexLocation + Mesh->GetIndices()[ Offset.StartIndexLocation + k ] ].Position );
+        }
+        Renderable->SetBounds( Bounds );
+        Renderable->SetUseCustomBounds( true );
+
+        FTextureResource * Texture = GResourceManager->GetResource< FTextureResource >( Offset.Abstract.Str() );
+
+        FMaterialInstance * MaterialInstance = Material->CreateInstance();
+        MaterialInstance->Set( MaterialInstance->AddressOf( "SmpBaseColor" ), Texture );
+
+        Renderable->SetMaterialInstance( MaterialInstance );
+        MaterialInstance->Set( MaterialInstance->AddressOf( "AmbientColor" ), 0.0f, 0.0f, 0.0f );
+    }
+
+#if 0
+    FSceneNode * Node = CameraNode->CreateChild( "Cube" );
+    Node->SetPosition(0,-1.6f,-4.0f);
+    //Node->SetAngles(45,45,0);
+    Node->SetScale(0.001f);
+
+    // Create mesh
+    {
+        FStaticMeshResource * MeshResource = LoadStaticMesh( "Samples/PBRTest/knight-artorias/source/Artorias.fbx" );
+
+        FTextureResource::FLoadParameters LoadParameters;
+        memset( &LoadParameters, 0, sizeof( LoadParameters ) );
+        LoadParameters.BuildMipmaps = true;
+
+        const char * BaseColorMap[] = {
+            "Samples/PBRTest/knight-artorias/textures/Mat_Circle_Base_Color.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Helmet_Base_Color.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Skirt_Base_Color.png",
+            "Samples/PBRTest/knight-artorias/textures/Sword_albedo.jpg",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Chainmail_Base_Color.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_PlateArmor_Base_Color.png"
+        };
+        const char * NormalMap[] = {
+            "*normal*",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Helmet_Normal_OpenGL.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Skirt_Normal_OpenGL.png",
+            "Samples/PBRTest/knight-artorias/textures/Sword_normal.jpg",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Chainmail_Normal_OpenGL.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_PlateArmor_Normal_OpenGL.png"
+        };
+        const char * MetallicMap[] = {
+            "*black*",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Helmet_Metallic.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Skirt_Metallic.png",
+            "Samples/PBRTest/knight-artorias/textures/Sword_metallic.jpg",
+            "Samples/PBRTest/knight-artorias/textures/Mat_Chainmail_Metallic.png",
+            "Samples/PBRTest/knight-artorias/textures/Mat_PlateArmor_Metallic.png"
+        };
+        const char * RoughnessMap[] = {             
+             "Samples/PBRTest/knight-artorias/textures/Mat_Circle_Roughness.png",
+             "Samples/PBRTest/knight-artorias/textures/Mat_Helmet_Roughness.png",
+             "Samples/PBRTest/knight-artorias/textures/Mat_Skirt_Roughness.png",
+             "Samples/PBRTest/knight-artorias/textures/Sword_roughness.jpg",
+             "Samples/PBRTest/knight-artorias/textures/Mat_Chainmail_Roughness.png",
+             "Samples/PBRTest/knight-artorias/textures/Mat_PlateArmor_Roughness.png"
+        };
+
+        FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Samples/PBRTest/knight-artorias.json" );
+        Material->Load();
+
+        // Init meshes
+        const TArray< FMeshOffset > & _Meshes = MeshResource->GetMeshOffsets();
+        for ( int i = 0 ; i < _Meshes.Length() ; i++ ) {
+            const FMeshOffset & Offset = _Meshes[ i ];
+            FStaticMeshComponent * Mesh = Node->CreateComponent< FStaticMeshComponent >();
+
+            FTextureResource * BaseColor = GResourceManager->GetResource< FTextureResource >( ( BaseColorMap[i] ) );
+            LoadParameters.SRGB = true;
+            LoadParameters.BuildMipmaps = true;
+            BaseColor->SetLoadParameters( LoadParameters );
+
+            FTextureResource * Normal = GResourceManager->GetResource< FTextureResource >( ( NormalMap[i] ) );
+            LoadParameters.SRGB = false;
+            Normal->SetLoadParameters( LoadParameters );
+
+            FTextureResource * Metallic = GResourceManager->GetResource< FTextureResource >( ( MetallicMap[i] ) );
+            LoadParameters.SRGB = false;
+            Metallic->SetLoadParameters( LoadParameters );
+
+            FTextureResource * Roughness = GResourceManager->GetResource< FTextureResource >( ( RoughnessMap[i] ) );
+            LoadParameters.SRGB = false;
+            Roughness->SetLoadParameters( LoadParameters );
+
+            FMaterialInstance * MaterialInstance = Material->CreateInstance();
+            MaterialInstance->Set( MaterialInstance->AddressOf( "SmpBaseColor" ), BaseColor );
+            MaterialInstance->Set( MaterialInstance->AddressOf( "SmpNormal" ), Normal );
+            MaterialInstance->Set( MaterialInstance->AddressOf( "SmpMetallic" ), Metallic );
+            MaterialInstance->Set( MaterialInstance->AddressOf( "SmpRoughness" ), Roughness );
+            
+            Mesh->SetMaterialInstance( MaterialInstance );
+            Mesh->SetMesh( MeshResource );
+            Mesh->SetDrawRange( Offset.IndexCount, Offset.StartIndexLocation, Offset.BaseVertexLocation );
+        }
+    }
+#endif
+
+#if 0
+    FStaticMeshComponent * Renderable = Node->CreateComponent< FStaticMeshComponent >();
+    FStaticMeshResource * Mesh = GResourceManager->GetResource< FStaticMeshResource >( "*box*" );
+    FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Blade/StandardMaterial.json" );
+    Material->Load();
+
+    Renderable->SetMesh( Mesh );
+    Renderable->EnableShadowCast( true );
+
+    FTextureResource * Texture = GResourceManager->GetResource< FTextureResource >( "Blade/mipmapchecker.png" );//World.Faces[ 0 ]->TextureName.Str() );
+    //if ( !Texture->Load() ) {
+    //    Texture = DefaultTexture;
+    //}
+
+    FMaterialInstance * MaterialInstance = Material->CreateInstance();
+    MaterialInstance->Set( MaterialInstance->AddressOf( "SmpBaseColor" ), Texture );
+
+    Renderable->SetMaterialInstance( MaterialInstance );
+
+        //    FVec4 AmbientColor;
+        //    const float ColorNormalizer = 1.0f / 255.0f;
+        //    //AmbientColor.x = World.Sectors[ Face->SectorIndex ].AmbientColor[0] * ColorNormalizer;
+        //    //AmbientColor.y = World.Sectors[ Face->SectorIndex ].AmbientColor[1] * ColorNormalizer;
+        //    //AmbientColor.z = World.Sectors[ Face->SectorIndex ].AmbientColor[2] * ColorNormalizer;
+        //    AmbientColor.w = World.Sectors[ Face->SectorIndex ].AmbientIntensity;// * 5;
+
+        //    AmbientColor.x = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 0 ] * ColorNormalizer );
+        //    AmbientColor.y = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 1 ] * ColorNormalizer );
+        //    AmbientColor.z = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 2 ] * ColorNormalizer );
+
+        //    #ifndef UNLIT
+        //    AmbientColor.w *= 5;
+        //    #endif
+
+            MaterialInstance->Set( MaterialInstance->AddressOf( "AmbientColor" ), 0.0f, 0.0f, 0.0f );
+        //    WorldRenderable->SetMaterialInstance( MaterialInstance );
+        //}
+#endif
+}
+
+AN_FORCEINLINE float ConvertToRGB( const float & _sRGB ) {
+#ifdef SRGB_GAMMA_APPROX
+    return pow( _sRGB, 2.2f );
+#else
+    if ( _sRGB < 0.0f ) return 0.0f;
+    if ( _sRGB > 1.0f ) return 1.0f;
+    if ( _sRGB <= 0.04045 ) {
+        return _sRGB / 12.92f;
+    } else {
+        return pow( ( _sRGB + 0.055f ) / 1.055f, 2.4f );
+    }
+#endif
+}
+
+AN_FORCEINLINE float ComputeGrayscaleColor( const float & _Red, const float & _Green, const float & _Blue ) {
+    // Assume color is in linear space
+
+    return _Red * 0.212639005871510 + _Green * 0.715168678767756 + _Blue * 0.072192315360734;
+//  return _Red * 0.212671f         + _Green * 0.715160f         + _Blue * 0.072169f;
 }
 
 static void CreateSunLight() {
+    if ( !World.HasSky ) {
+        return;
+    }
+
     // Create light object
     FSceneNode * Node = Scene->CreateChild( "SunLight" );
     Node->SetPosition( 0, 5, 0 );
@@ -332,21 +547,157 @@ static void CreateSunLight() {
     //Light->SetColor( World.Atmospheres[2].Color[0]/* / 255.0f*/ * World.Atmospheres[2].Intensity,
     //                 World.Atmospheres[2].Color[1]/* / 255.0f*/ * World.Atmospheres[2].Intensity,
     //                 World.Atmospheres[2].Color[2]/* / 255.0f*/ * World.Atmospheres[2].Intensity );
-    Light->SetColor( 1, 1, 1 );
+    //Light->SetColor( FVec3(ComputeGrayscaleColor(SkyColorAvg.r,SkyColorAvg.g,SkyColorAvg.b) * Tunes.SunBrightness) );
+    Light->SetColor( SkyColorAvg * Tunes.SunBrightness );
     Light->SetDirection( FVec3( 0.707107f, -0.707107f, 0.0f ) );
-    //Light->SetDirection( FVec3( -0.2f, -1, 0 ) );
-    //Light->SetLumens( 100 );
-    Light->SetLumens( 1000 );
-    Light->SetTemperature( 6500 );
+    Light->SetRenderMask( 1 );
+
+    //Node = Scene->CreateChild( "EnvMap" );
+    //Node->SetPosition( World.Bounds.Center() );
+    //FEnvCaptureComponent * EnvCapture = Node->CreateComponent< FEnvCaptureComponent >();
+    //EnvCapture->SetBox( World.Bounds.Size() + 1.0f );
+    //EnvCapture->SetColor( FVec3(0.5f) );
+    //EnvCapture->SetWeight( 1.0f );
+}
+
+//#define LABYR
+
+static void CreateEnvCaptures() {
+    FVec4 AmbientColor;
+    const float ColorNormalizer = 1.0f / 255.0f;
+
+    for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
+        FAxisAlignedBox & AABB = World.Sectors[i].Bounds;
+
+        FVec3 Position = AABB.Center();
+
+        AmbientColor.x = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 0 ] * ColorNormalizer );
+        AmbientColor.y = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 1 ] * ColorNormalizer );
+        AmbientColor.z = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 2 ] * ColorNormalizer );
+
+#define SIMULATE_HDRI
+#ifdef SIMULATE_HDRI
+        const float HDRI_Scale = 4.0f;
+        const float HDRI_Pow = 1.1f;
+#else
+        const float HDRI_Scale = 1.0f;
+        const float HDRI_Pow = 1.0f;
+#endif
+
+        //AmbientColor *= 0.1f;
+
+        //AmbientColor *= World.Sectors[ i ].AmbientIntensity;
+        float Lum = ComputeGrayscaleColor( AmbientColor.r, AmbientColor.g, AmbientColor.b );
+        if ( Lum < 0.01f ) {
+            // too dark
+            continue;
+        }
+
+        FSceneNode * Node = Scene->CreateChild( "Env" );
+        Node->SetPosition( Position );
+
+        bool HasSky = false;
+        for ( int f = 0 ; f < World.Sectors[i].Faces.Length() && !HasSky ; f++ ) {
+            if ( World.Sectors[i].Faces[f]->Type == FBladeWorld::FT_Skydome ) {
+                HasSky = true;
+            }
+        }
+
+#ifndef LABYR
+        // Create IBL
+        {
+            FEnvCaptureComponent * EnvCapture = Node->CreateComponent< FEnvCaptureComponent >();
+            EnvCapture->SetBox( AABB.Size() + 0.011f );
+            //EnvCapture->SetBox( AABB.Size() + 0.1f );
+            //EnvCapture->SetSphere( Radius+0.011f );
+            EnvCapture->SetColor( AmbientColor * Tunes.AmbientScale );
+            EnvCapture->SetInnerRange( 0.1f );
+            EnvCapture->SetWeight( 1.0f );
+
+            EnvCapture->SetProbeIndex( 0 );
+        }
+#endif
+
+#if 1
+
+        if ( HasSky ) {
+            continue;
+        }
+        
+        float Radius = AABB.Radius();
+
+        if ( Radius < 4.0f ) {
+            continue; // too little light
+        }
+
+        bool LittleDistance = false;
+        for ( int f = 0 ; f < World.Sectors[i].Faces.Length() && !LittleDistance ; f++ ) {
+            const FDPlane & Plane = World.Sectors[i].Faces[f]->Plane;
+
+            if ( FMath::Abs( Plane.Distance( Position ) ) < 0.3f ) {
+                LittleDistance = true;
+            }
+        }
+
+        if ( LittleDistance ) {
+            continue;
+        }
+
+        // Create point light
+        FLightComponent * Light = Node->CreateComponent< FLightComponent >();
+        Light->SetType( FLightComponent::T_Point );
+        Light->SetOuterRadius( Radius );
+        Light->SetInnerRadius( Radius*0.9f );// Radius*0.01f );
+        Light->SetColor( AmbientColor * Tunes.LightScale );
+#endif
+    }
+
+#ifdef LABYR
+    FSceneNode * Node = Scene->CreateChild( "EnvMap" );
+    Node->SetPosition( World.Bounds.Center() );
+    FEnvCaptureComponent * EnvCapture = Node->CreateComponent< FEnvCaptureComponent >();
+    EnvCapture->SetBox( World.Bounds.Size() + 1.0f );
+    EnvCapture->SetColor( SkyColorAvg * Tunes.SunBrightness * 0.1f );
+    EnvCapture->SetWeight( 1.0f );
+#endif
 }
 
 static void CreateWorldGeometry() {
     FAxisAlignedBox Bounds;
 
+    // Create default texture
+    FTextureResource * DefaultTexture = GResourceManager->GetResource< FTextureResource >( "Blade/mipmapchecker.png" );
+    FTextureResource::FLoadParameters LoadParameters;
+    LoadParameters.BuildMipmaps = true;
+    LoadParameters.SRGB = true;
+    DefaultTexture->SetLoadParameters( LoadParameters );
+    DefaultTexture->Load();
+
     // Upload world mesh
     FStaticMeshResource * WorldMesh = GResourceManager->CreateUnnamedResource< FStaticMeshResource >();
     WorldMesh->SetVertexData( World.MeshVertices.ToPtr(), World.MeshVertices.Length(), World.MeshIndices.ToPtr(), World.MeshIndices.Length() );
     WorldMesh->SetMeshOffsets( World.MeshOffsets.ToPtr(), World.MeshOffsets.Length() );
+
+//#define WORLD_AS_ONE_MESH
+#ifdef WORLD_AS_ONE_MESH
+
+    // Create materials
+    FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Blade/StandardMaterial.json" );
+    Material->Load();
+
+    // Create world object
+    FSceneNode * WorldNode = Scene;//Scene->CreateChild( "World" );
+    FStaticMeshComponent * WorldRenderable = WorldNode->CreateComponent< FStaticMeshComponent >();
+    WorldRenderable->SetMesh( WorldMesh );
+    WorldRenderable->SetBounds( World.Bounds );
+    WorldRenderable->SetUseCustomBounds( true );
+    WorldRenderable->EnableShadowCast( false );
+
+    FMaterialInstance * MaterialInstance = Material->CreateInstance();
+    MaterialInstance->Set( MaterialInstance->AddressOf( "SmpBaseColor" ), DefaultTexture );
+    WorldRenderable->SetMaterialInstance( MaterialInstance );
+
+#else
 
     // Create materials
 #ifdef UNLIT
@@ -361,14 +712,6 @@ static void CreateWorldGeometry() {
 
     FMaterialInstance * SkyboxMaterialInstance = SkyboxMaterial->CreateInstance();
     SkyboxMaterialInstance->Set( SkyboxMaterialInstance->AddressOf( "SmpCubemap" ), SkyboxTexture );
-
-    // Create default texture
-    FTextureResource * DefaultTexture = GResourceManager->GetResource< FTextureResource >( "Blade/mipmapchecker.png" );
-    FTextureResource::FLoadParameters LoadParameters;
-    LoadParameters.BuildMipmaps = true;
-    LoadParameters.SRGB = true;
-    DefaultTexture->SetLoadParameters( LoadParameters );
-    DefaultTexture->Load();
 
     // Create world object
     FSceneNode * WorldNode = Scene;//Scene->CreateChild( "World" );
@@ -387,6 +730,8 @@ static void CreateWorldGeometry() {
         WorldRenderable->SetUseCustomBounds( true );
         //WorldRenderable->EnableShadowCast( Face->CastShadows );
         WorldRenderable->EnableShadowCast( false );
+        WorldRenderable->SetSurfaceType( SURF_PLANAR );
+        WorldRenderable->SetSurfacePlane( FPlane(Face->Plane) );
         
         if ( Face->Type == FBladeWorld::FT_Skydome || Face->TextureName.Length() == 0 ) {
             WorldRenderable->SetMaterialInstance( SkyboxMaterialInstance );
@@ -404,36 +749,41 @@ static void CreateWorldGeometry() {
             FMaterialInstance * MaterialInstance = Material->CreateInstance();
             MaterialInstance->Set( MaterialInstance->AddressOf( "SmpBaseColor" ), Texture );
 
-            FVec4 AmbientColor;
-            const float ColorNormalizer = 1.0f / 255.0f;
-            AmbientColor.x = World.Sectors[ Face->SectorIndex ].AmbientColor[0] * ColorNormalizer;
-            AmbientColor.y = World.Sectors[ Face->SectorIndex ].AmbientColor[1] * ColorNormalizer;
-            AmbientColor.z = World.Sectors[ Face->SectorIndex ].AmbientColor[2] * ColorNormalizer;
-            AmbientColor.w = World.Sectors[ Face->SectorIndex ].AmbientIntensity;// * 5;
+            //FVec4 AmbientColor;
+            //const float ColorNormalizer = 1.0f / 255.0f;
+            //AmbientColor.x = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 0 ] * ColorNormalizer );
+            //AmbientColor.y = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 1 ] * ColorNormalizer );
+            //AmbientColor.z = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 2 ] * ColorNormalizer );
+            //FVec4 Color = AmbientColor * World.Sectors[ Face->SectorIndex ].AmbientIntensity;
+            //float Lum = ComputeGrayscaleColor( Color.r,Color.g,Color.b );
 
-            #ifndef UNLIT
-            AmbientColor.w *= 5;
-            #endif
+            //if ( Lum < 0.01f ) {
+            //    MaterialInstance->Set( MaterialInstance->AddressOf( "LightMask" ), (int)0xffffffff & (~1) );
+            //} else {
+            //    MaterialInstance->Set( MaterialInstance->AddressOf( "LightMask" ), (int)0xffffffff );
+            //}
 
-            MaterialInstance->Set( MaterialInstance->AddressOf( "AmbientColor" ), AmbientColor );
             WorldRenderable->SetMaterialInstance( MaterialInstance );
         }
     }
+#endif
 
     // Shadow caster as single mesh
     if ( World.ShadowCasterMeshOffset.IndexCount > 0 ) {
-        FStaticMeshComponent * WorldRenderable = WorldNode->CreateComponent< FStaticMeshComponent >();
-        WorldRenderable->SetMesh( WorldMesh );
-        WorldRenderable->SetDrawRange( World.ShadowCasterMeshOffset.IndexCount, World.ShadowCasterMeshOffset.StartIndexLocation, World.ShadowCasterMeshOffset.BaseVertexLocation );
+        FStaticMeshComponent * ShadowCaster = WorldNode->CreateComponent< FStaticMeshComponent >();
+        ShadowCaster->SetMesh( WorldMesh );
+        ShadowCaster->SetDrawRange( World.ShadowCasterMeshOffset.IndexCount, World.ShadowCasterMeshOffset.StartIndexLocation, World.ShadowCasterMeshOffset.BaseVertexLocation );
         Bounds.Clear();
         for ( int k = 0 ; k < World.ShadowCasterMeshOffset.IndexCount ; k++ ) {
             Bounds.AddPoint( World.MeshVertices[ World.ShadowCasterMeshOffset.BaseVertexLocation + World.MeshIndices[ World.ShadowCasterMeshOffset.StartIndexLocation + k ] ].Position );
         }
-        WorldRenderable->SetBounds( Bounds );
-        WorldRenderable->SetUseCustomBounds( true );
-        WorldRenderable->EnableShadowCast( true );
-        WorldRenderable->EnableLightPass( false );
+        ShadowCaster->SetBounds( Bounds );
+        ShadowCaster->SetUseCustomBounds( true );
+        ShadowCaster->EnableShadowCast( true );
+        ShadowCaster->EnableLightPass( false );
     }
+
+    CreateEnvCaptures();
 
     // Create chunked mesh for world picking
 #ifdef DEBUG_WORLD_PICKING
@@ -447,7 +797,7 @@ static void CreateDebugMesh() {
     FPrimitiveBatchComponent * Prim = Node->CreateComponent< FPrimitiveBatchComponent >();
 
     Prim->SetColor( 1, 0, 0, 1 );
-    Prim->DrawAABB( World.Bounds );
+    //Prim->DrawAABB( World.Bounds );
 
 #ifdef DEBUG_BLADE_MP_SECTORS
     FBladeMap Map;
@@ -731,6 +1081,9 @@ static void DebugWorldPicking() {
 }
 
 static void DebugKeypress( float _TimeStep ) {
+    if ( Window->IsKeyPressed( Key_F, false ) ) {
+        r_faceCull.SetBool( !r_faceCull.GetBool() );
+    }
     if ( Window->IsKeyPressed( Key_Y, false ) ) {
         if ( RenderTarget->GetRenderMode() == ERenderMode::SolidTriangles ) {
             RenderTarget->SetRenderMode( ERenderMode::Solid );
@@ -753,22 +1106,29 @@ static void DebugKeypress( float _TimeStep ) {
         r_spatialCull.ToggleBool();
     }
 
-    const float TurnSpeed = _TimeStep;
-    if ( Window->IsKeyDown( Key_LEFTARROW ) ) {
-        FSceneNode * Node = Scene->FindChild( "SunLight" );
-        Node->TurnLeftFPS( TurnSpeed );
+    if ( World.HasSky ) {
+        const float TurnSpeed = _TimeStep;
+
+        if ( Window->IsKeyDown( Key_LEFTARROW ) ) {
+            FSceneNode * Node = Scene->FindChild( "SunLight" );
+            Node->TurnLeftFPS( TurnSpeed );
+        }
+        if ( Window->IsKeyDown( Key_RIGHTARROW ) ) {
+            FSceneNode * Node = Scene->FindChild( "SunLight" );
+            Node->TurnRightFPS( TurnSpeed );
+        }
+        if ( Window->IsKeyDown( Key_UPARROW ) ) {
+            FSceneNode * Node = Scene->FindChild( "SunLight" );
+            Node->TurnUpFPS( TurnSpeed );
+        }
+        if ( Window->IsKeyDown( Key_DOWNARROW ) ) {
+            FSceneNode * Node = Scene->FindChild( "SunLight" );
+            Node->TurnDownFPS( TurnSpeed );
+        }
     }
-    if ( Window->IsKeyDown( Key_RIGHTARROW ) ) {
-        FSceneNode * Node = Scene->FindChild( "SunLight" );
-        Node->TurnRightFPS( TurnSpeed );
-    }
-    if ( Window->IsKeyDown( Key_UPARROW ) ) {
-        FSceneNode * Node = Scene->FindChild( "SunLight" );
-        Node->TurnUpFPS( TurnSpeed );
-    }
-    if ( Window->IsKeyDown( Key_DOWNARROW ) ) {
-        FSceneNode * Node = Scene->FindChild( "SunLight" );
-        Node->TurnDownFPS( TurnSpeed );
+
+    if ( Window->IsKeyPressed( Key_0, false ) ) {
+        CreateEnvCaptures();
     }
 }
 
@@ -881,7 +1241,7 @@ static void DebugSectorPortals( const FBladeWorld::FSector & Sector ) {
 #endif
 }
 
-void FGame::OnBeforeCommandLineProcessing( TMutableArray< char * > & _Arguments ) {
+void FGame::OnBeforeCommandLineProcessing( TPodArray< char * > & _Arguments ) {
     _Arguments.Append( "-splash" );
     _Arguments.Append( "Blade/splash.png" );
     _Arguments.Append( "-splashOpacity" );
@@ -897,10 +1257,15 @@ void FGame::OnSetPrimaryWindowDefs( FWindowDefs & _WindowDefs ) {
 void FGame::OnInitialize() {
     LoadConfigFile();
 
+    Window = GetPrimaryWindow();
+
     Scene = TNew< FScene >();
 
     Scene->GetOrCreateComponent< FWorldComponent >();
     Scene->GetOrCreateComponent< FPhysicsComponent >();
+
+    //GAudioSystem->SetMasterGain( 0.0f );
+    GAudioSystem->SetMasterGain( 1.0f );
 
     //FBladeCSV CSV;
     //CSV.LoadCSV( MakePath( "Maps/csv.dat" ) );
@@ -938,6 +1303,70 @@ void FGame::OnInitialize() {
     FString SFName = demo_gamelevel.GetString();
     SFName.ReplaceExt( ".sf" );
 
+    FString TunesName = demo_gamelevel.GetString();
+    TunesName.StripFilename().Concat( ".txt" );
+
+    Tunes.LoadTunes( ( "Blade/Tunes/" + TunesName ).Str() );
+
+// ok
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/altarPieza3.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/Gargola02.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/lampara.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/longswordpieza1.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/EstatuaGolem.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/Dragon_estatua.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/Gargola_estatua.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/vampweapon.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/globo.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/rastrillo32.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/rastrillo3.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/ArmaduraKF.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/Hacha2hojas.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/Carcaj_Amz_seleccion.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Ork.BOD" );
+Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Skl.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Amz_l.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/amz_bng.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Amz_N.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Amzskin1.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Amzskin2.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Ank.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Ank_Bng.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Ank2.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Bar.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Bar_bng.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Bar_L.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Bar_N.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Barskin1.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Barskin1.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/bat.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Gargoyle_Stone_Form.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Kgt_F.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/Flecha_Amz_seleccion.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/HacharrajadaPieza3.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/llavedoblada.BOD" );
+
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/trono.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/firybally.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/leon.BOD" );
+//Model.LoadModel( "E:/Games/Blade of Darkness/3DObjs/reyaure.BOD" );
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+    
+    
     LoadLevel( MakePath( demo_gamelevel.GetString() ) );
     LoadGhostSectors( MakePath( SFName.Str() ) );
     LoadMusic();
@@ -947,10 +1376,8 @@ void FGame::OnInitialize() {
     CreateWorldGeometry();
     CreateDebugMesh();
 
-    GAudioSystem->SetMasterGain( 0.0f );
-    //GAudioSystem->SetMasterGain( 15.0f );
-
-    Scene->SetDebugDrawFlags( 0 );
+    Scene->SetDebugDrawFlags( 0 );// EDebugDrawFlags::DRAW_LIGHTS );
+    //Scene->SetDebugDrawFlags( EDebugDrawFlags::DRAW_ENV_CAPTURE );
 
     RenderTexture = GResourceManager->CreateUnnamedResource< FTextureResource >();
     RenderTexture->CreateRenderTarget();
@@ -964,24 +1391,20 @@ void FGame::OnInitialize() {
     RenderTarget->SetViewCamera( Camera );
     RenderTarget->SetCullCamera( Camera );
     RenderTarget->SetColorGradingEnabled( demo_colorgrading.GetBool() );
-    RenderTarget->SetColorGradingGamma( FVec3( 0.624f ) );
-    RenderTarget->SetColorGradingLift( FVec3( 0.472f ) );
-    RenderTarget->SetColorGradingPresaturation( FVec3( 1.0f ) );
-    RenderTarget->SetColorGradingTemperature( 4601.678f );
-    RenderTarget->SetColorGradingTemperatureStrength( FVec3( 1.0f ) );
-    RenderTarget->SetColorGradingBrightnessNormalization( 0.0f );
 
     RenderTarget->SetAmbientOcclusionMode( demo_ssao.GetBool() ? EAmbientOcclusion::SSAO16 : EAmbientOcclusion::OFF );
     if ( SkyboxTexture ) {
-        RenderTarget->EnvProbeDebug = GResourceManager->CreateUnnamedResource< FTextureResource >();
-        //RenderTarget->EnvProbeDebug->GenerateEnvProbe( 7, GResourceManager->GetResource<FTextureResource>("*black*") );
-        RenderTarget->EnvProbeDebug->GenerateEnvProbe( 7, SkyboxTexture );
-        //RenderTarget->EnvProbeDebug->GenerateEnvProbe( 1, SkyboxTexture );
+        FTextureResource * WhiteCubemap = CreateWhiteCubemap();
+        const FTextureResource * EnvProbes[2] = { WhiteCubemap, SkyboxTexture };
+
+        FTextureResource * EnvProbeArray = GResourceManager->CreateUnnamedResource< FTextureResource >();
+        EnvProbeArray->GenerateEnvProbes( 7, 2, EnvProbes );
+
+        RenderTarget->SetEnvironmentProbeArray( EnvProbeArray );
     }
 
     GPlatformPort->CloseSplashScreen();
 
-    Window = GetPrimaryWindow();
     Window->SetTexture( RenderTexture );
     if ( !demo_fullscreen.GetBool() ) {
         FMonitor * Monitor = GPlatformPort->GetPrimaryMonitor();
@@ -999,7 +1422,8 @@ void FGame::OnInitialize() {
     Window->E_OnMouseMove.Subscribe( this, &FGame::OnMouseMove );
     Window->E_OnUpdateGui.Subscribe( this, &FGame::OnUpdateGui );
     Window->SetCursorMode( ECursorMode::Disabled );
-    Window->SetSwapControlMode( ESwapControl::Adaptive );
+    //Window->SetSwapControlMode( ESwapControl::Adaptive );
+    Window->SetSwapControlMode( ESwapControl::Synchronized );
 
     ImGui_Create( Window );
 }
@@ -1223,6 +1647,7 @@ void FGame::OnUpdate( float _TimeStep ) {
         PrevSectorIndex = SectorIndex;
 
         // Update color grading inside the sector
+#if 1
         FVec3 Color;
         byte YCoCg[3], RGB[3];
         FColorSpace::RGBToYCoCg( Sector.AmbientColor, YCoCg );
@@ -1231,8 +1656,24 @@ void FGame::OnUpdate( float _TimeStep ) {
         Color.r = RGB[0] / 255.0f;
         Color.g = RGB[1] / 255.0f;
         Color.b = RGB[2] / 255.0f;
+
+        RenderTarget->SetColorGradingGamma( FVec3( 0.624f ) );
+        RenderTarget->SetColorGradingLift( FVec3( 0.472f ) );
+        RenderTarget->SetColorGradingPresaturation( FVec3( 1.0f ) );
+        RenderTarget->SetColorGradingTemperature( 4601.678f );
+        RenderTarget->SetColorGradingTemperatureStrength( FVec3( 1.0f ) );
+        RenderTarget->SetColorGradingBrightnessNormalization( 0.0f );
         RenderTarget->SetColorGradingGrain( Color );
         RenderTarget->SetColorGradingLUT( NULL );
+#else
+        //byte YCoCg[3];
+        //FColorSpace::RGBToYCoCg( Sector.AmbientColor, YCoCg );
+        FVec3 Color( FMath::Clamp( Sector.AmbientColor[0] / 255.0f * 0.3f + Sector.AmbientColor[1] / 255.0f * 0.4f + Sector.AmbientColor[2] / 255.0f * 0.3f - 0.5f, 0.001f, 0.5f ) );
+
+        //RenderTarget->SetTonemappingExposure( pow( (1.0f-Color.r) * 4.0f, 4.0 ) );
+        RenderTarget->SetColorGradingGrain( Color );
+        RenderTarget->SetColorGradingLUT( NULL );
+#endif
 
         // Draw some debug info
         DebugSectorPortals( Sector );

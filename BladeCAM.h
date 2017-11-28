@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Framework/Containers/Public/ArrayList.h>
+#include <Framework/Containers/Public/Array.h>
 #include <Framework/Math/Public/Math.h>
 
 // Blade .CAM file loader
@@ -39,6 +39,6 @@ struct FCameraRecord {
 
     void LoadRecord( const char * _FileName );
 
-    TArrayList< FFrame > Frames;
+    TArray< FFrame > Frames;
     float UnknownFloat;
 };

@@ -52,7 +52,7 @@ struct FBladeWorld {
 
     struct FLeafIndices {
         uint32 UnknownIndex;
-        TMutableArray< uint32 > Indices;
+        TPodArray< uint32 > Indices;
     };
 
     struct FBSPNode {
@@ -70,11 +70,11 @@ struct FBladeWorld {
         float TexCoordOffset[ 2 ];
 
         // Only for leafs
-        TArrayList< FLeafIndices > Unknown;
+        TArray< FLeafIndices > Unknown;
 
         // Leaf triangles
-        TMutableArray< FDVec3 > Vertices;
-        TMutableArray< unsigned int > Indices;
+        TPodArray< FDVec3 > Vertices;
+        TPodArray< unsigned int > Indices;
     };
 
     struct FFace {
@@ -87,12 +87,12 @@ struct FBladeWorld {
         bool CastShadows;
 
         // result mesh
-        TMutableArray< FDVec3 > Vertices;
-        TMutableArray< unsigned int > Indices;
+        TPodArray< FDVec3 > Vertices;
+        TPodArray< unsigned int > Indices;
 
         int SectorIndex;
 
-        TArrayList< FFace * > SubFaces;
+        TArray< FFace * > SubFaces;
 
         FBSPNode * Root;
     };
@@ -103,7 +103,7 @@ struct FBladeWorld {
         TPolygon< double > Winding;
 
         // Some planes. What they mean?
-        TMutableArray< FDPlane > Planes;
+        TPodArray< FDPlane > Planes;
 
         bool Marked;
     };
@@ -115,26 +115,26 @@ struct FBladeWorld {
 
         FVec3 LightDir;
 
-        TArrayList< FFace * > Faces;
-        TArrayList< FPortal * > Portals;
+        TArray< FFace * > Faces;
+        TArray< FPortal * > Portals;
 
         FAxisAlignedBox Bounds;
         FVec3 Centroid;
     };
 
-    TArrayList< FBladeMap::FAtmosphereEntry > Atmospheres;
-    TArrayList< FDVec3 > Vertices;
-    TArrayList< FSector > Sectors;
-    TArrayList< FMeshOffset > MeshOffsets;
-    TArrayList< FMeshVertex > MeshVertices;
-    TArrayList< unsigned int > MeshIndices;
-    TArrayList< FFace * > MeshFaces;
+    TArray< FBladeMap::FAtmosphereEntry > Atmospheres;
+    TArray< FDVec3 > Vertices;
+    TArray< FSector > Sectors;
+    TArray< FMeshOffset > MeshOffsets;
+    TArray< FMeshVertex > MeshVertices;
+    TArray< unsigned int > MeshIndices;
+    TArray< FFace * > MeshFaces;
     FMeshOffset ShadowCasterMeshOffset;
 
-    TMutableArray< FPortal * > Portals;
-    TMutableArray< FFace * > Faces;
-    TMutableArray< FBSPNode * > BSPNodes;
-    TMutableArray< FBSPNode * > Leafs; // Temporary used on loading
+    TPodArray< FPortal * > Portals;
+    TPodArray< FFace * > Faces;
+    TPodArray< FBSPNode * > BSPNodes;
+    TPodArray< FBSPNode * > Leafs; // Temporary used on loading
 
     FAxisAlignedBox Bounds;
     bool HasSky;
@@ -155,10 +155,10 @@ private:
     void LoadFaceWithHole( FFace * _Face );
     void LoadFaceBSP( FFace * _Face );
     void LoadSkydomeFace( FFace * _Face );
-    void ReadIndices( TMutableArray< unsigned int > & _Indices );
+    void ReadIndices( TPodArray< unsigned int > & _Indices );
     void ReadWinding( TPolygon< double > & _Winding );
     FBSPNode * ReadBSPNode_r( FFace * _Face );
-    void CreateWindings_r( FBladeWorld::FFace * _Face, const TArrayList< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node );
+    void CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node );
     void FilterWinding_r( FBladeWorld::FFace * _Face, FBSPNode * _Node, FBSPNode * _Leaf );
     void WorldGeometryPostProcess();
 

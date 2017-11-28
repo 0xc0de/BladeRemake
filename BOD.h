@@ -25,19 +25,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <Engine/Runnable.h>
 #include <Engine/Window.h>
 
-#include <Engine/Material/Public/MaterialResource.h>
-#include <Engine/Material/Public/MaterialInstance.h>
+#include <Engine/Renderer/Public/MaterialResource.h>
+#include <Engine/Renderer/Public/MaterialInstance.h>
 
-#include <Engine/Mesh/Public/StaticMeshResource.h>
+#include <Engine/Renderer/Public/StaticMeshResource.h>
 
 #include <Engine/Scene/Public/Scene.h>
-#include <Engine/Scene/Public/SpatialTreeComponent.h>
+#include <Engine/Renderer/Public/SpatialTreeComponent.h>
 
 #include <Engine/AI/Public/ChunkedMeshComponent.h>
 
 class FGame : public FRunnable {
 public:
-    void OnBeforeCommandLineProcessing( TMutableArray< char * > & _Arguments ) override;
+    void OnBeforeCommandLineProcessing( TPodArray< char * > & _Arguments ) override;
     void OnSetPrimaryWindowDefs( FWindowDefs & _WindowDefs ) override;
     void OnInitialize() override;
     void OnShutdown() override;

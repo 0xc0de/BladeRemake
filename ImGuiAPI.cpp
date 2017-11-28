@@ -174,7 +174,7 @@ static void RenderDrawLists() {
         DrawData->ScaleClipRects( IO.DisplayFramebufferScale );
     }
 
-    TArrayList< FDrawList > & DrawLists = GWindow->GetDrawLists();
+    TArray< FDrawList > & DrawLists = GWindow->GetDrawLists();
     DrawLists.Resize( DrawData->CmdListsCount );
 
     for ( int n = 0; n < DrawData->CmdListsCount ; n++ ) {

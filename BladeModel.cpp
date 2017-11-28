@@ -33,26 +33,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <map>
 
 #pragma warning( disable : 4189 )
+#pragma warning( disable : 4101 )
 
 void FBladeModel::LoadModel( const char * _FileName ) {
     struct FVertex {
         FDVec3 Position;
         FDVec3 Normal;
+        TPodArray< int > Polygons;
     };
 
     struct FPolygon {
         int Indices[3];
         FVec2 TexCoords[3];
         int Unknown;
+        FString TextureName;
+        int Use;
     };
 
-    TArrayList< FMeshVertex > MeshVertices;
-    TMutableArray< unsigned int > MeshIndices;
-    TArrayList< FMeshOffset > MeshOffsets;
-    FMeshVertex Vertex;
-    FString TextureName;
-    TArrayList< FVertex > Vertices;
-    TArrayList< FPolygon > Polygons;
+    TPodArray< FMeshVertex > MeshVertices;
+    TPodArray< unsigned int > MeshIndices;
+    TArray< FMeshOffset > MeshOffsets;
+    TArray< FVertex > Vertices;
+    TArray< FPolygon > Polygons;
 
     FFileAbstract * File = FFiles::OpenFileFromUrl( _FileName, FFileAbstract::M_Read );
     if ( !File ) {
@@ -79,16 +81,14 @@ void FBladeModel::LoadModel( const char * _FileName ) {
         v.Normal.z = -DumpDouble( File );
     }
 
-    memset( &Vertex, 0, sizeof( Vertex ) );
-
-    std::map< std::string, TMutableArray< int > > TextureMap;
+    std::map< std::string, TPodArray< int > > TextureMap;
 
     Out() << "Texture Unknown Ints:";
 
-    int NumTextures = DumpInt( File );
-    Polygons.Resize( NumTextures );
+    int PolygonsCount = DumpInt( File );
+    Polygons.Resize( PolygonsCount );
 
-    for ( int i = 0 ; i < NumTextures ; i++ ) {
+    for ( int i = 0 ; i < PolygonsCount ; i++ ) {
 
         FPolygon & Polygon = Polygons[i];
 
@@ -96,56 +96,27 @@ void FBladeModel::LoadModel( const char * _FileName ) {
         Polygon.Indices[1] = DumpInt( File );
         Polygon.Indices[2] = DumpInt( File );
 
-        TextureName = DumpString( File );
+        Vertices[ Polygon.Indices[0] ].Polygons.Append( i );
+        Vertices[ Polygon.Indices[1] ].Polygons.Append( i );
+        Vertices[ Polygon.Indices[2] ].Polygons.Append( i );
 
-        TextureMap[ TextureName.Str() ].Append( i );
+        Polygon.TextureName = DumpString( File );
+
+        TextureMap[ Polygon.TextureName.Str() ].Append( i );
     
         Polygon.TexCoords[0].x = DumpFloat( File );
         Polygon.TexCoords[1].x = DumpFloat( File );
         Polygon.TexCoords[2].x = DumpFloat( File );
-        Polygon.TexCoords[0].y = DumpFloat( File );
-        Polygon.TexCoords[1].y = DumpFloat( File );
-        Polygon.TexCoords[2].y = DumpFloat( File );
+        Polygon.TexCoords[0].y = 1.0f - DumpFloat( File );
+        Polygon.TexCoords[1].y = 1.0f - DumpFloat( File );
+        Polygon.TexCoords[2].y = 1.0f - DumpFloat( File );
 
         SetDumpLog( true );
         Polygon.Unknown = DumpInt( File );
+        assert( Polygon.Unknown == 0 ); // FIXME
         SetDumpLog( false );
-    }
 
-    MeshOffsets.Resize( TextureMap.size() );
-
-    int OffsetIndex = 0;
-    int StartIndexLocation = 0;
-    for ( auto It : TextureMap ) {
-
-        const TMutableArray< int > & PolygonIndices = It.second;
-
-        for ( int i = 0 ; i < PolygonIndices.Length() ; i++ ) {
-            for ( int j = 0 ; j < 3 ; j++ ) {
-                FPolygon & Polygon = Polygons[ PolygonIndices[i] ];
-
-                FVertex & v = Vertices[ Polygon.Indices[j] ];
-                Vertex.Position.x = v.Position.x;
-                Vertex.Position.y = v.Position.y;
-                Vertex.Position.z = v.Position.z;
-                Vertex.Normal.x = v.Normal.x;
-                Vertex.Normal.y = v.Normal.y;
-                Vertex.Normal.z = v.Normal.z;
-                Vertex.TexCoord = Polygon.TexCoords[j];
-
-                MeshIndices.Append( MeshVertices.Length() );
-                MeshVertices.Append( Vertex );
-            }
-        }
-
-        FMeshOffset & Offset = MeshOffsets[OffsetIndex];
-        Offset.IndexCount = PolygonIndices.Length() * 3;
-        Offset.StartIndexLocation = StartIndexLocation;
-        Offset.Abstract = It.first.c_str();
-
-        ++OffsetIndex;
-
-        StartIndexLocation += Offset.IndexCount;
+        Polygon.Use = 0;
     }
 
     int PartsCount = DumpInt( File );
@@ -158,6 +129,8 @@ void FBladeModel::LoadModel( const char * _FileName ) {
         SetDumpLog( true );
 
         Out() << "Parts";
+
+        int StartIndexLocation = 0;
 
         for ( int n = 0 ; n < PartsCount  ; n++ ) {
             FPart & Part = Parts[ n ];
@@ -184,8 +157,66 @@ void FBladeModel::LoadModel( const char * _FileName ) {
                 DumpDouble( File );
                 DumpDouble( File );
                 DumpDouble( File );
-                DumpInt( File );
-                DumpInt( File );
+                int FirstVertex = DumpInt( File ); // First vertex
+                int NumVertices = DumpInt( File ); // Num vertices
+
+                for ( int p = 0 ; p < Polygons.Length() ; p++ ) {
+                    FPolygon & Polygon = Polygons[p];
+
+                    Polygon.Use = 0;
+                }
+
+                for ( int v = 0 ; v < NumVertices ; v++ ) {
+                    FVertex & Vertex = Vertices[ FirstVertex + v ];
+                    for ( int p = 0 ; p < Vertex.Polygons.Length() ; p++ ) {
+                        Polygons[ Vertex.Polygons[p] ].Use++;
+                    }
+                }
+
+                FMeshOffset Offset;
+
+                for ( int p = 0 ; p < Polygons.Length() ; p++ ) {
+                    FPolygon & Polygon = Polygons[p];
+
+                    if ( Polygon.Use < 3 ) {
+                        continue;
+                    }
+                    assert( Polygon.Use == 3 );
+                    
+                    for ( int j = 0 ; j < 3 ; j++ ) {                        
+
+                        FVertex & v = Vertices[ Polygon.Indices[ j ] ];
+                        FMeshVertex & Vertex = MeshVertices.Append();
+
+                        Vertex.Clear();
+                        Vertex.Position.x = v.Position.x;
+                        Vertex.Position.y = v.Position.y;
+                        Vertex.Position.z = v.Position.z;
+                        Vertex.Normal.x = v.Normal.x;
+                        Vertex.Normal.y = v.Normal.y;
+                        Vertex.Normal.z = v.Normal.z;
+                        Vertex.TexCoord = Polygon.TexCoords[ j ];
+//Vertex.TexCoord.y=1.0f-Vertex.TexCoord.y;
+
+                        MeshIndices.Append( MeshVertices.Length() - 1 );
+                    }
+
+                    Offset.IndexCount += 3;
+                    Offset.Abstract = Polygon.TextureName;
+                }
+
+                //assert( Offset.IndexCount > 0 );
+
+                if ( Offset.IndexCount > 0 ) {
+
+                    Offset.StartIndexLocation = StartIndexLocation;
+                    //Offset.Abstract = Polygons[FirstPolygon].TextureName;
+
+                    MeshOffsets.Append( Offset );
+
+                    StartIndexLocation += Offset.IndexCount;
+                }
+
             }
         }
 
@@ -254,7 +285,7 @@ void FBladeModel::LoadModel( const char * _FileName ) {
 
         Out() << "----------";
         Count = DumpInt( File );
-
+        assert( Count == PolygonsCount );
         for ( int n = 0 ; n < Count ; n++ ) {
             DumpByte( File );
         }
@@ -262,6 +293,7 @@ void FBladeModel::LoadModel( const char * _FileName ) {
         Out() <<"------------";
 
         Count = DumpInt( File );
+        assert( Count == PolygonsCount );
         for ( int n = 0 ; n < Count ; n++ ) {
             DumpInt( File );
         }
@@ -282,6 +314,44 @@ void FBladeModel::LoadModel( const char * _FileName ) {
         SetDumpLog( true );
         DumpFileOffset( File );
         SetDumpLog( false );
+
+        MeshOffsets.Resize( TextureMap.size() );
+
+        int OffsetIndex = 0;
+        int StartIndexLocation = 0;
+        for ( auto It : TextureMap ) {
+
+            const TPodArray< int > & PolygonIndices = It.second;
+
+            for ( int i = 0 ; i < PolygonIndices.Length() ; i++ ) {
+                for ( int j = 0 ; j < 3 ; j++ ) {
+                    FPolygon & Polygon = Polygons[ PolygonIndices[ i ] ];
+
+                    FVertex & v = Vertices[ Polygon.Indices[ j ] ];
+                    FMeshVertex & Vertex = MeshVertices.Append();
+
+                    Vertex.Clear();
+                    Vertex.Position.x = v.Position.x;
+                    Vertex.Position.y = v.Position.y;
+                    Vertex.Position.z = v.Position.z;
+                    Vertex.Normal.x = v.Normal.x;
+                    Vertex.Normal.y = v.Normal.y;
+                    Vertex.Normal.z = v.Normal.z;
+                    Vertex.TexCoord = Polygon.TexCoords[ j ];
+
+                    MeshIndices.Append( MeshVertices.Length() - 1 );
+                }
+            }
+
+            FMeshOffset & Offset = MeshOffsets[ OffsetIndex ];
+            Offset.IndexCount = PolygonIndices.Length() * 3;
+            Offset.StartIndexLocation = StartIndexLocation;
+            Offset.Abstract = It.first.c_str();
+
+            ++OffsetIndex;
+
+            StartIndexLocation += Offset.IndexCount;
+        }
 
         Part.UnknownIndex = 0;
 

@@ -85,7 +85,7 @@ static void PrintPolygon( const FClipperPolygon & _Polygon ) {
     }
 }
 
-static void PrintPolygons( const TArrayList< FClipperPolygon > & _Polygons ) {
+static void PrintPolygons( const TArray< FClipperPolygon > & _Polygons ) {
     for ( int i = 0 ; i < _Polygons.Length() ; i++ ) {
         Out() << "--------- Poly" << i << "----------";
         PrintPolygon( _Polygons[i] );
@@ -280,7 +280,7 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
     File->Seek( SectorsCount * 4, FFileAbstract::SeekCur );
 
     //__addStructureAt(pos, "StringArray", "");
-    TArrayList< FString > Strings;
+    TArray< FString > Strings;
     Strings.Resize( DumpInt( File ) );
     for ( int i = 0 ; i < Strings.Length() ; i++ ) {
         Strings[i] = DumpString( File );
@@ -335,7 +335,7 @@ void FBladeWorld::LoadFace( FFace * _Face ) {
     }
 }
 
-void FBladeWorld::ReadIndices( TMutableArray< unsigned int > & _Indices ) {
+void FBladeWorld::ReadIndices( TPodArray< unsigned int > & _Indices ) {
     int32 NumIndices;
     File->ReadSwapInt32( NumIndices );
     _Indices.Resize( NumIndices );
@@ -483,15 +483,15 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
     Clipper.AddContour3D( Winding.ToPtr(), Winding.Length(), true );
     Clipper.AddContour3D( Hole.ToPtr(), Hole.Length(), false );
 
-    TArrayList< FClipperPolygon > ResultPolygons;
+    TArray< FClipperPolygon > ResultPolygons;
     Clipper.Execute( FClipper::CLIP_DIFF, ResultPolygons );
 
     //PrintPolygons( ResultPolygons );
 
     typedef TTriangulator< FDVec2, FDVec2 > FTriangulator;
     FTriangulator Triangulator;
-    TMutableArray< FTriangulator::FPolygon * > Polygons;
-    TArrayList< FDVec2 > ResultVertices;
+    TPodArray< FTriangulator::FPolygon * > Polygons;
+    TArray< FDVec2 > ResultVertices;
     for ( int i = 0 ; i < ResultPolygons.Length() ; i++ ) {
         FTriangulator::FPolygon * Polygon = new FTriangulator::FPolygon;
 
@@ -543,7 +543,7 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
     }
 }
 
-static int VerticesOffset( const FDPlane & _Plane, const TMutableArray< FDVec3 > & _Vertices ) {
+static int VerticesOffset( const FDPlane & _Plane, const TPodArray< FDVec3 > & _Vertices ) {
     int Front = 0;
     int Back = 0;
 
@@ -584,7 +584,7 @@ void FBladeWorld::FilterWinding_r( FBladeWorld::FFace * _Face, FBSPNode * _Node,
     }    
 }
 
-void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArrayList< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node ) {
+void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node ) {
     if ( _Node->Type == NT_Leaf ) {
         assert( _Winding != NULL );
 
@@ -596,16 +596,16 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArrayList
             Clipper.AddContour2D( _Holes[ i ].ToPtr(), _Holes[ i ].Length(), false, true );
         }
 
-        TArrayList< FClipperPolygon > ResultPolygons;
+        TArray< FClipperPolygon > ResultPolygons;
         Clipper.Execute( FClipper::CLIP_DIFF, ResultPolygons );
 
         //PrintPolygons( ResultPolygons );
 
         typedef TTriangulator< FDVec2, FDVec2 > FTriangulator;
         FTriangulator Triangulator;
-        TMutableArray< FTriangulator::FPolygon * > Polygons;
-        TArrayList< FDVec2 > ResultVertices;
-        TMutableArray< unsigned int > ResultIndices;
+        TPodArray< FTriangulator::FPolygon * > Polygons;
+        TArray< FDVec2 > ResultVertices;
+        TPodArray< unsigned int > ResultIndices;
         for ( int i = 0 ; i < ResultPolygons.Length() ; i++ ) {
             FTriangulator::FPolygon * Polygon = new FTriangulator::FPolygon;
 
@@ -702,7 +702,7 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
 
     FDPlane Plane = _Face->Plane;
 
-    TArrayList< FClipperContour > Holes;
+    TArray< FClipperContour > Holes;
 
     int NumHoles;
     File->ReadSwapInt32( NumHoles );
@@ -907,7 +907,7 @@ void FBladeWorld::WorldGeometryPostProcess() {
     ShadowCasterMeshOffset.StartIndexLocation = 0;
     ShadowCasterMeshOffset.IndexCount = 0;
 
-    TMutableArray< int > VerticesCounts;
+    TPodArray< int > VerticesCounts;
     VerticesCounts.Resize( Sectors.Length() );
 
     Bounds.Clear();
@@ -1108,16 +1108,16 @@ void FBladeWorld::FreeWorld() {
             }
         }
 
-        TArrayList< FClipperPolygon > ResultPolygons;
+        TArray< FClipperPolygon > ResultPolygons;
         Clipper.Execute( FClipper::CLIP_DIFF, ResultPolygons );
 
         //PrintPolygons( ResultPolygons );
 
         typedef TTriangulator< FDVec2, FDVec2 > FTriangulator;
         FTriangulator Triangulator;
-        TMutableArray< FTriangulator::FPolygon * > Polygons;
-        TArrayList< FDVec2 > ResultVertices;
-        TMutableArray< unsigned int > ResultIndices;
+        TPodArray< FTriangulator::FPolygon * > Polygons;
+        TArray< FDVec2 > ResultVertices;
+        TPodArray< unsigned int > ResultIndices;
         for ( int i = 0 ; i < ResultPolygons.Length() ; i++ ) {
             FTriangulator::FPolygon * Polygon = new FTriangulator::FPolygon;
 

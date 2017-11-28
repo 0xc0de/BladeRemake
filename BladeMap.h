@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include <Framework/Containers/Public/String.h>
-#include <Framework/Containers/Public/ArrayList.h>
+#include <Framework/Containers/Public/Array.h>
 
 // Blade .MP file loader
 
@@ -111,13 +111,13 @@ struct FBladeMap {
 
         FString AttributeName;
 
-        TArrayList< FVertex > Vertices;
-        TArrayList< FWall > Walls;
+        TArray< FVertex > Vertices;
+        TArray< FWall > Walls;
     };
 
-    TArrayList< FTextureEntry > Textures;
-    TArrayList< FAtmosphereEntry > Atmospheres;
-    TArrayList< FSectorEntry > Sectors;
+    TArray< FTextureEntry > Textures;
+    TArray< FAtmosphereEntry > Atmospheres;
+    TArray< FSectorEntry > Sectors;
 
     void LoadMap( const char * _FileName );
     void FreeMap();

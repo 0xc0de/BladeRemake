@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Framework/Containers/Public/ArrayList.h>
+#include <Framework/Containers/Public/Array.h>
 #include <Framework/Containers/Public/String.h>
 
 // Blade .CSV file loader
@@ -39,7 +39,7 @@ struct FBladeCSV {
         FString UnknownString;
     };
 
-    TArrayList< FEntry > Entries;
+    TArray< FEntry > Entries;
 
     void LoadCSV( const char * _FileName );
 };

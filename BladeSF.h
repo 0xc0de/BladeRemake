@@ -24,8 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Framework/Containers/Public/ArrayList.h>
-#include <Framework/Containers/Public/MutableArray.h>
+#include <Framework/Containers/Public/Array.h>
+#include <Framework/Containers/Public/PodArray.h>
 #include <Framework/Containers/Public/String.h>
 
 // Blade .SF file loader
@@ -36,7 +36,7 @@ struct FBladeSF {
         FString Name;
         float FloorHeight;
         float RoofHeight;
-        TMutableArray< FVec2 > Vertices;
+        TPodArray< FVec2 > Vertices;
         FString Group;
         FString Sound;
         float Volume;
@@ -47,7 +47,7 @@ struct FBladeSF {
         float Scale;
     };
 
-    TArrayList< FGhostSector > GhostSectors;
+    TArray< FGhostSector > GhostSectors;
 
     void LoadSF( const char * _FileName );
 
