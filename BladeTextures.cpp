@@ -164,7 +164,7 @@ AN_FORCEINLINE float ConvertToRGB( const float & _sRGB ) {
 }
 
 // Load Skydome from .MMP file
-FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg ) {
+FTextureResource * LoadDome( const char * _FileName, Float3 * _SkyColorAvg ) {
     FFileAbstract * File = FFiles::OpenFileFromUrl( _FileName, FFileAbstract::M_Read );
 
     if ( !File ) {
@@ -307,13 +307,13 @@ FTextureResource * LoadDome( const char * _FileName, FVec3 * _SkyColorAvg ) {
             FImageUtils::FlipBuffer( Desc.Lods[DomeFace].Pixels, Width, Height, 3 * 4, Width*3 * 4, true, false );
 
             if ( _SkyColorAvg ) {
-                *_SkyColorAvg = FVec3(0.0f);
+                *_SkyColorAvg = Float3(0.0f);
                 int Count = Width * Height * 3;
                 float * TrueColor = (float *)Lods[ DomeFace ].Pixels;
                 for ( int j = 0; j < Count ; j += 3 ) {
-                    _SkyColorAvg->r += TrueColor[ j + 2 ];
-                    _SkyColorAvg->g += TrueColor[ j + 1 ];
-                    _SkyColorAvg->b += TrueColor[ j + 0 ];
+                    _SkyColorAvg->X += TrueColor[ j + 2 ];
+                    _SkyColorAvg->Y += TrueColor[ j + 1 ];
+                    _SkyColorAvg->Z += TrueColor[ j + 0 ];
                 }
                 *_SkyColorAvg /= Count;
             }

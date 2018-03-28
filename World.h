@@ -28,5 +28,5 @@ class FWorldComponent : public FSpatialTreeComponent {
     AN_FACTORY_OBJECT( FWorldComponent, FSpatialTreeComponent )
 
 public:
-    int FindSpatialArea( const FVec3 & _Position ) override;
+    int FindSpatialArea( const Float3 & _Position ) override;
 };

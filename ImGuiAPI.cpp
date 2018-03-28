@@ -78,7 +78,7 @@ void ImGui_Create( FWindow * _Window ) {
     ImVec2 FramebufferSize(640,480);
     IO.DisplaySize.x = 640;
     IO.DisplaySize.y = 480;
-    IO.DisplayFramebufferScale = FVec2((float)FramebufferSize.x / IO.DisplaySize.x, (float)FramebufferSize.y / IO.DisplaySize.y);
+    IO.DisplayFramebufferScale = Float2((float)FramebufferSize.x / IO.DisplaySize.x, (float)FramebufferSize.y / IO.DisplaySize.y);
     IO.DeltaTime = 1.0f / 60.0f;
     IO.MousePos.x = -1;
     IO.MousePos.y = -1;
@@ -196,22 +196,22 @@ static void RenderDrawLists() {
 }
 
 void ImGui_BeginUpdate() {
-    FIVec2 FramebufferSize = GWindow->GetPlatformWindow()->GetFramebufferSize();
-    FIVec2 DisplaySize = GWindow->GetPlatformWindow()->GetSize();
+    Int2 FramebufferSize = GWindow->GetPlatformWindow()->GetFramebufferSize();
+    Int2 DisplaySize = GWindow->GetPlatformWindow()->GetSize();
 
     ImGuiIO & IO = ImGui::GetIO();
    
-    IO.DisplaySize.x = DisplaySize.x;
-    IO.DisplaySize.y = DisplaySize.y;
-    IO.DisplayFramebufferScale = FVec2((float)FramebufferSize.x / IO.DisplaySize.x, (float)FramebufferSize.y / IO.DisplaySize.y);
+    IO.DisplaySize.x = DisplaySize.X;
+    IO.DisplaySize.y = DisplaySize.Y;
+    IO.DisplayFramebufferScale = Float2((float)FramebufferSize.X / IO.DisplaySize.x, (float)FramebufferSize.Y / IO.DisplaySize.y);
 
     static float PrevTime = GPlatformPort->GetTimeSec();
     float CurTime = GPlatformPort->GetTimeSec();
     IO.DeltaTime = CurTime - PrevTime;
     PrevTime = CurTime;
 
-    IO.MousePos.x = FMath::Clamp( IO.MousePos.x, 0.0f, (float)FramebufferSize.x );
-    IO.MousePos.y = FMath::Clamp( IO.MousePos.y, 0.0f, (float)FramebufferSize.y );
+    IO.MousePos.x = Float( IO.MousePos.x ).Clamp( 0.0f, (float)FramebufferSize.X );
+    IO.MousePos.y = Float( IO.MousePos.y ).Clamp( 0.0f, (float)FramebufferSize.Y );
     IO.MouseDrawCursor = true;
 
     for ( int i = 0 ; i < 5 ; i++ ) {

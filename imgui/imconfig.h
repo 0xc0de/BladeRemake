@@ -39,13 +39,13 @@
 //---- Define constructor and implicit cast operators to convert back<>forth from your math types and ImVec2/ImVec4.
 
 #define IM_VEC2_CLASS_EXTRA                                                 \
-        ImVec2(const FVec2& f) { x = f.x; y = f.y; }                       \
-        operator FVec2() const { return FVec2(x,y); }
+        ImVec2(const Float2& f) { x = f.X; y = f.Y; }                       \
+        operator Float2() const { return Float2(x,y); }
         
 
 #define IM_VEC4_CLASS_EXTRA                                                 \
-        ImVec4(const FVec4& f) { x = f.x; y = f.y; z = f.z; w = f.w; }     \
-        operator FVec4() const { return FVec4(x,y,z,w); }
+        ImVec4(const Float4& f) { x = f.X; y = f.Y; z = f.Z; w = f.W; }     \
+        operator Float4() const { return Float4(x,y,z,w); }
 
 //---- Tip: You can add extra functions within the ImGui:: namespace, here or in your own headers files.
 //---- e.g. create variants of the ImGui::Value() helper for your low-level math types, or your own widgets/helpers.

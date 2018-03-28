@@ -142,9 +142,9 @@ void FBladeSF::LoadSF( const char * _FileName ) {
             Sector->RoofHeight = atof( Value );
 
         } else if ( !FString::CmpCase( Key, "Vertex" ) ) {
-            FVec2 v;
+            Float2 v;
 
-            if ( sscanf( Str, "%s => %f %f", Value, &v.x, &v.y ) == 3 ) {
+            if ( sscanf( Str, "%s => %f %f", Value, &v.X.Value, &v.Y.Value ) == 3 ) {
                 Sector->Vertices.Append( v );
             }
 

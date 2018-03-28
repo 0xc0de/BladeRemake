@@ -31,36 +31,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 FBladeWorld World;
 
-const FVec3 BLADE_COORD_SCALE( 0.001f, -0.001f, -0.001f );
+const Double3 BLADE_COORD_SCALE_D( 0.001, -0.001, -0.001 );
+const Float3 BLADE_COORD_SCALE_F( 0.001f, -0.001f, -0.001f );
 
 template<>
-void TTriangulatorHelper_ContourVertexPosition( FDVec3 & _Dst, const FDVec2 & _Src ) {
-    _Dst.x = _Src.x;
-    _Dst.y = _Src.y;
-    _Dst.z = 0;
+void TTriangulatorHelper_ContourVertexPosition( Double3 & _Dst, const Double2 & _Src ) {
+    _Dst.X = _Src.X;
+    _Dst.Y = _Src.Y;
+    _Dst.Z = 0;
 }
 
 template<>
-void TTriangulatorHelper_TriangleVertexPosition( FDVec3 & _Dst, const FDVec2 & _Src ) {
-    _Dst.x = _Src.x;
-    _Dst.y = _Src.y;
-    _Dst.z = 0;
+void TTriangulatorHelper_TriangleVertexPosition( Double3 & _Dst, const Double2 & _Src ) {
+    _Dst.X = _Src.X;
+    _Dst.Y = _Src.Y;
+    _Dst.Z = 0;
 }
 
 template<>
-void TTriangulatorHelper_CombineVertex( FDVec2 & _OutputVertex,
-                                        const FDVec3 & _Position,
+void TTriangulatorHelper_CombineVertex( Double2 & _OutputVertex,
+                                        const Double3 & _Position,
                                         const float * _Weights,
-                                        const FDVec2 & _V0,
-                                        const FDVec2 & _V1,
-                                        const FDVec2 & _V2,
-                                        const FDVec2 & _V3 ) {
-    _OutputVertex.x = _Position.x;
-    _OutputVertex.y = _Position.y;
+                                        const Double2 & _V0,
+                                        const Double2 & _V1,
+                                        const Double2 & _V2,
+                                        const Double2 & _V3 ) {
+    _OutputVertex.X = _Position.X;
+    _OutputVertex.Y = _Position.Y;
 }
 
 template<>
-void TTriangulatorHelper_CopyVertex( FDVec2 & _Dst, const FDVec2 & _Src ) {
+void TTriangulatorHelper_CopyVertex( Double2 & _Dst, const Double2 & _Src ) {
     _Dst = _Src;
 }
 
@@ -120,9 +121,9 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
     File->ReadSwapInt32( VerticesCount );
     Vertices.Resize( VerticesCount );
     for ( int i = 0 ; i < VerticesCount ; i++ ) {
-        File->ReadSwapDouble( Vertices[i].x );
-        File->ReadSwapDouble( Vertices[i].y );
-        File->ReadSwapDouble( Vertices[i].z );
+        File->ReadSwapDouble( Vertices[i].X.Value );
+        File->ReadSwapDouble( Vertices[i].Y.Value );
+        File->ReadSwapDouble( Vertices[i].Z.Value );
     }
 
     int32 SectorsCount;
@@ -195,10 +196,10 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
         }
 
         // Light direction?
-        Sector.LightDir.x = DumpDouble( File );
-        Sector.LightDir.y = -DumpDouble( File );
-        Sector.LightDir.z = -DumpDouble( File );
-        Sector.LightDir = FMath::Normalize( Sector.LightDir );
+        Sector.LightDir.X = DumpDouble( File );
+        Sector.LightDir.Y = -DumpDouble( File );
+        Sector.LightDir.Z = -DumpDouble( File );
+        Sector.LightDir.NormalizeSelf();
 
         SetDumpLog( true );
 
@@ -344,7 +345,7 @@ void FBladeWorld::ReadIndices( TPodArray< unsigned int > & _Indices ) {
     }
 }
 
-void FBladeWorld::ReadWinding( TPolygon< double > & _Winding ) {
+void FBladeWorld::ReadWinding( PolygonD & _Winding ) {
     int32 NumVertices;
     int Index;
     File->ReadSwapInt32( NumVertices );
@@ -361,8 +362,8 @@ void FBladeWorld::ReadWinding( TPolygon< double > & _Winding ) {
 
 void FBladeWorld::LoadSimpleFace( FFace * _Face ) {
     // Face plane
-    File->ReadSwapVector( _Face->Plane.normal );
-    File->ReadSwapDouble( _Face->Plane.d );
+    File->ReadSwapVector( _Face->Plane.Normal );
+    File->ReadSwapDouble( _Face->Plane.D.Value );
 
     // FIXME: What is it?
     File->ReadSwapUInt64( _Face->UnknownSignature );
@@ -395,8 +396,8 @@ void FBladeWorld::LoadSimpleFace( FFace * _Face ) {
 
 void FBladeWorld::LoadPortalFace( FFace * _Face ) {
     // Face plane
-    File->ReadSwapVector( _Face->Plane.normal );
-    File->ReadSwapDouble( _Face->Plane.d );
+    File->ReadSwapVector( _Face->Plane.Normal );
+    File->ReadSwapDouble( _Face->Plane.D.Value );
 
     // Winding
     ReadIndices( _Face->Indices );
@@ -439,8 +440,8 @@ void FBladeWorld::LoadPortalFace( FFace * _Face ) {
 
 void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
     // Face plane
-    File->ReadSwapVector( _Face->Plane.normal );
-    File->ReadSwapDouble( _Face->Plane.d );
+    File->ReadSwapVector( _Face->Plane.Normal );
+    File->ReadSwapDouble( _Face->Plane.D.Value );
 
     // FIXME: What is it?
     File->ReadSwapUInt64( _Face->UnknownSignature );
@@ -468,18 +469,18 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
     SetDumpLog( true );
 
     // Winding
-    TPolygon< double > Winding;
+    PolygonD Winding;
     ReadWinding( Winding );
 
     // Winding hole
-    TPolygon< double > Hole;
+    PolygonD Hole;
     ReadWinding( Hole );
 
     FClipper Clipper;
 
-    FDPlane Plane = _Face->Plane;//Winding.CalcPlane();
+    PlaneD Plane = _Face->Plane;//Winding.CalcPlane();
 
-    Clipper.SetNormal( Plane.normal );
+    Clipper.SetNormal( Plane.Normal );
     Clipper.AddContour3D( Winding.ToPtr(), Winding.Length(), true );
     Clipper.AddContour3D( Hole.ToPtr(), Hole.Length(), false );
 
@@ -488,10 +489,10 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
 
     //PrintPolygons( ResultPolygons );
 
-    typedef TTriangulator< FDVec2, FDVec2 > FTriangulator;
+    typedef TTriangulator< Double2, Double2 > FTriangulator;
     FTriangulator Triangulator;
     TPodArray< FTriangulator::FPolygon * > Polygons;
-    TArray< FDVec2 > ResultVertices;
+    TArray< Double2 > ResultVertices;
     for ( int i = 0 ; i < ResultPolygons.Length() ; i++ ) {
         FTriangulator::FPolygon * Polygon = new FTriangulator::FPolygon;
 
@@ -505,9 +506,9 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
             Polygon->HoleContoursEnd[j] = ResultPolygons[i].Holes[j].ToPtr() + ResultPolygons[i].Holes[j].Length();
         }
 
-        Polygon->Normal.x = 0;
-        Polygon->Normal.y = 0;
-        Polygon->Normal.z = 1;
+        Polygon->Normal.X = 0;
+        Polygon->Normal.Y = 0;
+        Polygon->Normal.Z = 1;
 
         Polygons.Append( Polygon );
     }
@@ -519,11 +520,11 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
         delete Polygon;
     }
 
-    const FDMat3 & TransformMatrix = Clipper.GetTransform3D();
+    const Double3x3 & TransformMatrix = Clipper.GetTransform3D();
 
     _Face->Vertices.Resize( ResultVertices.Length() );
     for ( int k = 0 ; k < ResultVertices.Length() ; k++ ) {
-        _Face->Vertices[k] = TransformMatrix * FDVec3( ResultVertices[k], Plane.Dist() );
+        _Face->Vertices[k] = TransformMatrix * Double3( ResultVertices[k], Plane.Dist() );
     }
 
     FPortal * Portal = CreatePortal();
@@ -538,17 +539,17 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
     File->ReadSwapInt32( Count );
     Portal->Planes.Resize( Count );
     for ( int k = 0 ; k < Count ; k++ ) {
-        File->ReadSwapVector( Portal->Planes[ k ].normal );
-        File->ReadSwapDouble( Portal->Planes[ k ].d );
+        File->ReadSwapVector( Portal->Planes[ k ].Normal );
+        File->ReadSwapDouble( Portal->Planes[ k ].D.Value );
     }
 }
 
-static int VerticesOffset( const FDPlane & _Plane, const TPodArray< FDVec3 > & _Vertices ) {
+static int VerticesOffset( const PlaneD & _Plane, const TPodArray< Double3 > & _Vertices ) {
     int Front = 0;
     int Back = 0;
 
     for ( int i = 0 ; i < _Vertices.Length() ; i++ ) {
-        EPlaneSide::Type Side = _Plane.SideOffset( _Vertices[i], 0.0 );
+        EPlaneSide Side = _Plane.SideOffset( _Vertices[i], 0.0 );
 
         if ( Side == EPlaneSide::Front ) {
             Front++;
@@ -584,12 +585,12 @@ void FBladeWorld::FilterWinding_r( FBladeWorld::FFace * _Face, FBSPNode * _Node,
     }    
 }
 
-void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node ) {
+void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FClipperContour > & _Holes, PolygonD * _Winding, FBSPNode * _Node ) {
     if ( _Node->Type == NT_Leaf ) {
         assert( _Winding != NULL );
 
         FClipper Clipper;
-        Clipper.SetNormal( _Face->Plane.normal );
+        Clipper.SetNormal( _Face->Plane.Normal );
         Clipper.AddContour3D( _Winding->ToPtr(), _Winding->Length(), true );
 
         for ( int i = 0 ; i < _Holes.Length() ; i++ ) {
@@ -601,10 +602,10 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FC
 
         //PrintPolygons( ResultPolygons );
 
-        typedef TTriangulator< FDVec2, FDVec2 > FTriangulator;
+        typedef TTriangulator< Double2, Double2 > FTriangulator;
         FTriangulator Triangulator;
         TPodArray< FTriangulator::FPolygon * > Polygons;
-        TArray< FDVec2 > ResultVertices;
+        TArray< Double2 > ResultVertices;
         TPodArray< unsigned int > ResultIndices;
         for ( int i = 0 ; i < ResultPolygons.Length() ; i++ ) {
             FTriangulator::FPolygon * Polygon = new FTriangulator::FPolygon;
@@ -619,9 +620,9 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FC
                 Polygon->HoleContoursEnd[ j ] = ResultPolygons[ i ].Holes[ j ].ToPtr() + ResultPolygons[ i ].Holes[ j ].Length();
             }
 
-            Polygon->Normal.x = 0;
-            Polygon->Normal.y = 0;
-            Polygon->Normal.z = 1;
+            Polygon->Normal.X = 0;
+            Polygon->Normal.Y = 0;
+            Polygon->Normal.Z = 1;
 
             Polygons.Append( Polygon );
         }
@@ -633,11 +634,11 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FC
             delete Polygon;
         }
 
-        const FDMat3 & TransformMatrix = Clipper.GetTransform3D();
+        const Double3x3 & TransformMatrix = Clipper.GetTransform3D();
 
         _Node->Vertices.Resize( ResultVertices.Length() );
         for ( int k = 0 ; k < ResultVertices.Length() ; k++ ) {
-            _Node->Vertices[ k ] = TransformMatrix * FDVec3( ResultVertices[ k ], _Face->Plane.Dist() );
+            _Node->Vertices[ k ] = TransformMatrix * Double3( ResultVertices[ k ], _Face->Plane.Dist() );
         }
         _Node->Indices = ResultIndices;
 
@@ -646,8 +647,8 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FC
         return;
     }
 
-    TPolygon< double > * Front = NULL;
-    TPolygon< double > * Back = NULL;
+    PolygonD * Front = NULL;
+    PolygonD * Back = NULL;
 
     assert( _Winding != NULL );
     _Winding->Split( _Node->Plane, &Front, &Back, 0.0 );
@@ -661,8 +662,8 @@ void FBladeWorld::CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FC
 
 void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
     // Face plane
-    File->ReadSwapVector( _Face->Plane.normal );
-    File->ReadSwapDouble( _Face->Plane.d );
+    File->ReadSwapVector( _Face->Plane.Normal );
+    File->ReadSwapDouble( _Face->Plane.D.Value );
 
     // FIXME: What is it?
     File->ReadSwapUInt64( _Face->UnknownSignature );
@@ -692,7 +693,7 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
     // Winding
     ReadIndices( _Face->Indices );
 
-    TPolygon< double > Winding;
+    PolygonD Winding;
 
     Winding.Resize( _Face->Indices.Length() );
     for ( int k = 0 ; k < _Face->Indices.Length() ; k++ ) {
@@ -700,7 +701,7 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
     }
     Winding.Reverse();
 
-    FDPlane Plane = _Face->Plane;
+    PlaneD Plane = _Face->Plane;
 
     TArray< FClipperContour > Holes;
 
@@ -708,9 +709,9 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
     File->ReadSwapInt32( NumHoles );
     if ( NumHoles > 0 ) {
         FClipper HolesUnion;
-        TPolygon< double > Hole;
+        PolygonD Hole;
 
-        HolesUnion.SetNormal( Plane.normal );
+        HolesUnion.SetNormal( Plane.Normal );
 
         for ( int c = 0 ; c < NumHoles ; c++ ) {
             ReadWinding( Hole );
@@ -729,8 +730,8 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
             File->ReadSwapInt32( Count );
             Portal->Planes.Resize( Count );
             for ( int k = 0 ; k < Count ; k++ ) {
-                File->ReadSwapVector( Portal->Planes[k].normal );
-                File->ReadSwapDouble( Portal->Planes[k].d );
+                File->ReadSwapVector( Portal->Planes[k].Normal );
+                File->ReadSwapDouble( Portal->Planes[k].D.Value );
             }
         }
 
@@ -776,10 +777,10 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
     //assert( _Face->SubFaces.Length() > 0 );
 }
 
-static void ConvertFacePlane( FDPlane & _Plane ) {
-    _Plane.normal.y = -_Plane.normal.y;
-    _Plane.normal.z = -_Plane.normal.z;
-    _Plane.d *= 0.001f;
+static void ConvertFacePlane( PlaneD & _Plane ) {
+    _Plane.Normal.Y = -_Plane.Normal.Y;
+    _Plane.Normal.Z = -_Plane.Normal.Z;
+    _Plane.D *= 0.001;
 }
 
 FBladeWorld::FBSPNode * FBladeWorld::ReadBSPNode_r( FFace * _Face ) {
@@ -816,8 +817,8 @@ FBladeWorld::FBSPNode * FBladeWorld::ReadBSPNode_r( FFace * _Face ) {
     Node->Children[0] = ReadBSPNode_r( _Face );
     Node->Children[1] = ReadBSPNode_r( _Face );
 
-    File->ReadSwapVector( Node->Plane.normal );
-    File->ReadSwapDouble( Node->Plane.d );
+    File->ReadSwapVector( Node->Plane.Normal );
+    File->ReadSwapDouble( Node->Plane.D.Value );
 
     if ( Node->Type == NT_TexInfo ) {
         File->ReadSwapUInt64( Node->UnknownSignature );
@@ -844,8 +845,8 @@ FBladeWorld::FBSPNode * FBladeWorld::ReadBSPNode_r( FFace * _Face ) {
 
 void FBladeWorld::LoadSkydomeFace( FFace * _Face ) {
     // Face plane
-    File->ReadSwapVector( _Face->Plane.normal );
-    File->ReadSwapDouble( _Face->Plane.d );
+    File->ReadSwapVector( _Face->Plane.Normal );
+    File->ReadSwapDouble( _Face->Plane.D.Value );
 
     // Winding
     ReadIndices( _Face->Indices );
@@ -855,7 +856,7 @@ void FBladeWorld::LoadSkydomeFace( FFace * _Face ) {
 
 static void RecalcTextureCoords( FBladeWorld::FFace * _Face, FMeshVertex * _Vertices, int _NumVertices, int _TexWidth, int _TexHeight ) {
 #ifdef USE_TEXCOORD_CORRECTION
-    FVec2 Mins( std::numeric_limits< float >::max() );
+    Float2 Mins( std::numeric_limits< float >::max() );
 #endif
 
     double tx, ty;
@@ -865,24 +866,24 @@ static void RecalcTextureCoords( FBladeWorld::FFace * _Face, FMeshVertex * _Vert
     for ( int k = 0 ; k < _NumVertices ; k++ ) {
         FMeshVertex & Vert = _Vertices[ k ];
 
-        tx = FMath::Dot( _Face->TexCoordAxis[ 0 ], FDVec3( Vert.Position ) ) + _Face->TexCoordOffset[ 0 ];
-        ty = FMath::Dot( _Face->TexCoordAxis[ 1 ], FDVec3( Vert.Position ) ) + _Face->TexCoordOffset[ 1 ];
+        tx = FMath::Dot( _Face->TexCoordAxis[ 0 ], Double3( Vert.Position ) ) + double(_Face->TexCoordOffset[ 0 ]);
+        ty = FMath::Dot( _Face->TexCoordAxis[ 1 ], Double3( Vert.Position ) ) + double(_Face->TexCoordOffset[ 1 ]);
         tx *= sx;
         ty *= sy;
 
-        Vert.TexCoord.s = tx;
-        Vert.TexCoord.t = ty;
+        Vert.TexCoord.X = tx;
+        Vert.TexCoord.Y = ty;
 
 #ifdef USE_TEXCOORD_CORRECTION
-        Mins.x = FMath::Min( Vert.TexCoord.x, Mins.x );
-        Mins.y = FMath::Min( Vert.TexCoord.y, Mins.y );
+        Mins.X = FMath::Min( Vert.TexCoord.X, Mins.X );
+        Mins.Y = FMath::Min( Vert.TexCoord.Y, Mins.Y );
 #endif
     }
 
 #ifdef USE_TEXCOORD_CORRECTION
     // Скорректировать текстурные координаты, чтобы они были ближе к нулю
-    Mins.x = FMath::Floor( Mins.x );
-    Mins.y = FMath::Floor( Mins.y );
+    Mins.X = Mins.X.Floor();
+    Mins.Y = Mins.Y.Floor();
     for ( int k = 0 ; k < _NumVertices ; k++ ) {
         FMeshVertex & Vert = _Vertices[ k ];
         Vert.TexCoord -= Mins;
@@ -917,7 +918,7 @@ void FBladeWorld::WorldGeometryPostProcess() {
         FSector & Sector = Sectors[ SectorIndex ];
 
         Sector.Bounds.Clear();
-        Sector.Centroid = FVec3(0);
+        Sector.Centroid = Float3(0);
 
         VerticesCounts[ SectorIndex ] = 0;
     }
@@ -970,10 +971,10 @@ void FBladeWorld::WorldGeometryPostProcess() {
 
         if ( Face->Vertices.Length() > 0 ) {
             for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
-                Vertex.Position.x = Face->Vertices[ v ].x;
-                Vertex.Position.y = Face->Vertices[ v ].y;
-                Vertex.Position.z = Face->Vertices[ v ].z;
-                Vertex.Normal = Face->Plane.normal;
+                Vertex.Position.X = Face->Vertices[ v ].X;
+                Vertex.Position.Y = Face->Vertices[ v ].Y;
+                Vertex.Position.Z = Face->Vertices[ v ].Z;
+                Vertex.Normal = Float3( Face->Plane.Normal );
 
                 MeshVertices.Append( Vertex );
             }
@@ -989,7 +990,7 @@ void FBladeWorld::WorldGeometryPostProcess() {
             for ( int v = 0 ; v < Face->Vertices.Length() ; v++ ) {
                 FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
 
-                Vert.Position *= BLADE_COORD_SCALE;
+                Vert.Position *= BLADE_COORD_SCALE_F;
 
                 Sector.Bounds.AddPoint( Vert.Position );
                 Sector.Centroid += Vert.Position;
@@ -1002,8 +1003,8 @@ void FBladeWorld::WorldGeometryPostProcess() {
             for ( int j = 0 ; j < Face->Indices.Length() ; j++ ) {
                 int Index = Face->Indices[ j ];
 
-                Vertex.Position = Vertices[ Index ];
-                Vertex.Normal = Face->Plane.normal;
+                Vertex.Position = Float3( Vertices[ Index ] );
+                Vertex.Normal = Float3( Face->Plane.Normal );
 
                 MeshVertices.Append( Vertex );
             }
@@ -1022,7 +1023,7 @@ void FBladeWorld::WorldGeometryPostProcess() {
             for ( int v = 0 ; v < Face->Indices.Length() ; v++ ) {
                 FMeshVertex & Vert = MeshVertices[ v + FirstVertex ];
 
-                Vert.Position *= BLADE_COORD_SCALE;
+                Vert.Position *= BLADE_COORD_SCALE_F;
 
                 Sector.Bounds.AddPoint( Vert.Position );
                 Sector.Centroid += Vert.Position;
@@ -1081,7 +1082,7 @@ void FBladeWorld::FreeWorld() {
 
 #if 0
         FClipper Clipper;
-        TPolygon< double > Hole;
+        PolygonD Hole;
 
         Clipper.SetNormal( Plane.normal );
         Clipper.AddContour3D( Winding.ToPtr(), Winding.Length(), true );
@@ -1113,10 +1114,10 @@ void FBladeWorld::FreeWorld() {
 
         //PrintPolygons( ResultPolygons );
 
-        typedef TTriangulator< FDVec2, FDVec2 > FTriangulator;
+        typedef TTriangulator< Double2, Double2 > FTriangulator;
         FTriangulator Triangulator;
         TPodArray< FTriangulator::FPolygon * > Polygons;
-        TArray< FDVec2 > ResultVertices;
+        TArray< Double2 > ResultVertices;
         TPodArray< unsigned int > ResultIndices;
         for ( int i = 0 ; i < ResultPolygons.Length() ; i++ ) {
             FTriangulator::FPolygon * Polygon = new FTriangulator::FPolygon;
@@ -1131,9 +1132,9 @@ void FBladeWorld::FreeWorld() {
                 Polygon->HoleContoursEnd[j] = ResultPolygons[i].Holes[j].ToPtr() + ResultPolygons[i].Holes[j].Length();
             }
 
-            Polygon->Normal.x = 0;
-            Polygon->Normal.y = 0;
-            Polygon->Normal.z = 1;
+            Polygon->Normal.X = 0;
+            Polygon->Normal.Y = 0;
+            Polygon->Normal.Z = 1;
 
             Polygons.Append( Polygon );
         }
@@ -1145,11 +1146,11 @@ void FBladeWorld::FreeWorld() {
             delete Polygon;
         }
 
-        const FDMat3 & TransformMatrix = Clipper.GetTransform3D();
+        const Double3x3 & TransformMatrix = Clipper.GetTransform3D();
 
         _Face->Vertices.Resize( ResultVertices.Length() );
         for ( int k = 0 ; k < ResultVertices.Length() ; k++ ) {
-            _Face->Vertices[k] = TransformMatrix * FDVec3( ResultVertices[k], Plane.Dist() );
+            _Face->Vertices[k] = TransformMatrix * Double3( ResultVertices[k], Plane.Dist() );
         }
         _Face->Indices = ResultIndices;
 

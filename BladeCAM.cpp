@@ -41,7 +41,7 @@ void FCameraRecord::LoadRecord( const char * _FileName ) {
 
     Frames.Resize( LastFrameIndex + 1 );
 
-    FVec3 Axis;
+    Float3 Axis;
     float Angle;
 
     UnknownFloat = DumpFloat( File ); // what is it?
@@ -52,16 +52,15 @@ void FCameraRecord::LoadRecord( const char * _FileName ) {
         Out() << "------------- Frame" << i << "------------------";
 
         File->ReadSwapVector( Axis );
-        Axis.y = -Axis.y;
-        Axis.z = -Axis.z;
+        Axis.Y = -Axis.Y;
+        Axis.Z = -Axis.Z;
 
         File->ReadSwapFloat( Angle );
-        
-        FMat3 m = FMath::Transpose( FMath::RotateAxisNormalizedMat3x3( FMath::_PI/2.0f, FVec3(1,0,0) ) * FMath::RotateMat3x3( Angle, Axis ) );
-        Frame.Rotation = FMath::ToQuat( m );
+
+        Frame.Rotation.FromMatrix( ( Float3x3::RotationAroundNormal( FMath::_PI/2.0f, Float3(1,0,0) ) * Float3x3::RotationAroundVector( Angle, Axis ) ).Transposed() );
 
         File->ReadSwapVector( Frame.Position );
-        Frame.Position *= BLADE_COORD_SCALE;
+        Frame.Position *= BLADE_COORD_SCALE_F;
 
         Frame.TimeScale = /*1.0f / */DumpFloat( File ); // what is it?
     }

@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Common.h"
 
 #include <Framework/IO/Public/FileUrl.h>
-#include <Framework/Math/Public/ColorSpace.h>
+#include <Framework/Math/Public/Color.h>
 #include <Framework/Cmd/Public/CmdManager.h>
 
 #include <Engine/EntryDecl.h>
@@ -113,31 +113,31 @@ static void LoadConfigFile() {
 }
 
 static void CreateAudioForSector( const FBladeSF::FGhostSector & _Sector ) {
-    FVec3 Center(0);
+    Float3 Center(0);
 
     // Compute sector center
     int VerticesCount = _Sector.Vertices.Length();
     if ( VerticesCount > 0 ) {
         for ( int j = 0 ; j < VerticesCount ; j++ ) {
-            const FVec2 & v = _Sector.Vertices[ j ];
-            Center.x += v.x;
-            Center.z += v.y;
+            const Float2 & v = _Sector.Vertices[ j ];
+            Center.X += v.X;
+            Center.Z += v.Y;
         }
-        Center.x /= VerticesCount;
-        Center.z /= VerticesCount;
-        Center.y = ( _Sector.FloorHeight + _Sector.RoofHeight ) * 0.5f;
+        Center.X /= VerticesCount;
+        Center.Z /= VerticesCount;
+        Center.Y = ( _Sector.FloorHeight + _Sector.RoofHeight ) * 0.5f;
     }
 
 #if 0
     // Create trigger based on sector convex hull
-    TPodArray<FVec3> VertexSoup;
+    TPodArray<Float3> VertexSoup;
     for ( int j = 0 ; j < VerticesCount ; j++ ) {
-        const FVec2 & v = Sector.Vertices[ j ];
-        VertexSoup.Append( FVec3( v.x, Sector.FloorHeight, v.y ) );
+        const Float2 & v = Sector.Vertices[ j ];
+        VertexSoup.Append( Float3( v.X, Sector.FloorHeight, v.Y ) );
     }
     for ( int j = 0 ; j < VerticesCount ; j++ ) {
-        const FVec2 & v = Sector.Vertices[ j ];
-        VertexSoup.Append( FVec3( v.x, Sector.RoofHeight, v.y ) );
+        const Float2 & v = Sector.Vertices[ j ];
+        VertexSoup.Append( Float3( v.X, Sector.RoofHeight, v.Y ) );
     }
     FSceneNode * TriggerNode = Scene->CreateChild( "TriggerNode" );
     FRigidBodyComponent * RigidBody = TriggerNode->CreateComponent< FRigidBodyComponent >();
@@ -228,7 +228,7 @@ static void CreateAreasAndPortals() {
     for ( int i = 0 ; i < Areas.Length() ; i++ ) {
         Areas[i] = Scene->CreateComponent< FSpatialAreaComponent >();
         Areas[i]->SetPosition( World.Sectors[i].Bounds.Center() );
-        Areas[i]->SetBox( World.Sectors[i].Bounds.Size() + FVec3(0.01f) );
+        Areas[i]->SetBox( World.Sectors[i].Bounds.Size() + Float3(0.01f) );
         Areas[i]->SetUseReferencePoint( true );
         Areas[i]->SetReferencePoint( World.Sectors[i].Centroid );
     }
@@ -240,7 +240,7 @@ static void CreateAreasAndPortals() {
         }
     }
 
-    TPolygon< float > Winding;
+    PolygonF Winding;
     for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
         FBladeWorld::FSector & Sector = World.Sectors[i];
 
@@ -262,8 +262,7 @@ static void CreateAreasAndPortals() {
 
             Winding.Resize( Portal->Winding.Length() );
             for ( int k = 0 ; k < Winding.Length() ; k++ ) {
-                Winding[k] = Portal->Winding[k];
-                Winding[k] *= BLADE_COORD_SCALE;
+                Winding[k] = Float3( Portal->Winding[k] * BLADE_COORD_SCALE_D );
             }
 
             FSpatialPortalComponent * SpatialPortal = Scene->CreateComponent< FSpatialPortalComponent >();
@@ -353,7 +352,7 @@ static void CreateCamera() {
     FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Blade/StandardMaterial.json" );
     Material->Load();
 
-    FAxisAlignedBox Bounds;
+    BvAxisAlignedBox Bounds;
     for ( int i = 0 ; i < Mesh->GetMeshOffsets().Length() ; i++ ) {
         FSceneNode * Part = Node->CreateChild( "part" );
 
@@ -489,16 +488,16 @@ static void CreateCamera() {
 
     Renderable->SetMaterialInstance( MaterialInstance );
 
-        //    FVec4 AmbientColor;
+        //    Float4 AmbientColor;
         //    const float ColorNormalizer = 1.0f / 255.0f;
-        //    //AmbientColor.x = World.Sectors[ Face->SectorIndex ].AmbientColor[0] * ColorNormalizer;
-        //    //AmbientColor.y = World.Sectors[ Face->SectorIndex ].AmbientColor[1] * ColorNormalizer;
-        //    //AmbientColor.z = World.Sectors[ Face->SectorIndex ].AmbientColor[2] * ColorNormalizer;
+        //    //AmbientColor.X = World.Sectors[ Face->SectorIndex ].AmbientColor[0] * ColorNormalizer;
+        //    //AmbientColor.Y = World.Sectors[ Face->SectorIndex ].AmbientColor[1] * ColorNormalizer;
+        //    //AmbientColor.Z = World.Sectors[ Face->SectorIndex ].AmbientColor[2] * ColorNormalizer;
         //    AmbientColor.w = World.Sectors[ Face->SectorIndex ].AmbientIntensity;// * 5;
 
-        //    AmbientColor.x = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 0 ] * ColorNormalizer );
-        //    AmbientColor.y = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 1 ] * ColorNormalizer );
-        //    AmbientColor.z = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 2 ] * ColorNormalizer );
+        //    AmbientColor.X = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 0 ] * ColorNormalizer );
+        //    AmbientColor.Y = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 1 ] * ColorNormalizer );
+        //    AmbientColor.Z = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 2 ] * ColorNormalizer );
 
         //    #ifndef UNLIT
         //    AmbientColor.w *= 5;
@@ -547,33 +546,33 @@ static void CreateSunLight() {
     //Light->SetColor( World.Atmospheres[2].Color[0]/* / 255.0f*/ * World.Atmospheres[2].Intensity,
     //                 World.Atmospheres[2].Color[1]/* / 255.0f*/ * World.Atmospheres[2].Intensity,
     //                 World.Atmospheres[2].Color[2]/* / 255.0f*/ * World.Atmospheres[2].Intensity );
-    //Light->SetColor( FVec3(ComputeGrayscaleColor(SkyColorAvg.r,SkyColorAvg.g,SkyColorAvg.b) * Tunes.SunBrightness) );
+    //Light->SetColor( Float3(ComputeGrayscaleColor(SkyColorAvg.r,SkyColorAvg.g,SkyColorAvg.b) * Tunes.SunBrightness) );
     Light->SetColor( SkyColorAvg * Tunes.SunBrightness );
-    Light->SetDirection( FVec3( 0.707107f, -0.707107f, 0.0f ) );
+    Light->SetDirection( Float3( 0.707107f, -0.707107f, 0.0f ) );
     Light->SetRenderMask( 1 );
 
     //Node = Scene->CreateChild( "EnvMap" );
     //Node->SetPosition( World.Bounds.Center() );
     //FEnvCaptureComponent * EnvCapture = Node->CreateComponent< FEnvCaptureComponent >();
     //EnvCapture->SetBox( World.Bounds.Size() + 1.0f );
-    //EnvCapture->SetColor( FVec3(0.5f) );
+    //EnvCapture->SetColor( Float3(0.5f) );
     //EnvCapture->SetWeight( 1.0f );
 }
 
 //#define LABYR
 
 static void CreateEnvCaptures() {
-    FVec4 AmbientColor;
+    Float4 AmbientColor;
     const float ColorNormalizer = 1.0f / 255.0f;
 
     for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
-        FAxisAlignedBox & AABB = World.Sectors[i].Bounds;
+        BvAxisAlignedBox & AABB = World.Sectors[i].Bounds;
 
-        FVec3 Position = AABB.Center();
+        Float3 Position = AABB.Center();
 
-        AmbientColor.x = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 0 ] * ColorNormalizer );
-        AmbientColor.y = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 1 ] * ColorNormalizer );
-        AmbientColor.z = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 2 ] * ColorNormalizer );
+        AmbientColor.X = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 0 ] * ColorNormalizer );
+        AmbientColor.Y = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 1 ] * ColorNormalizer );
+        AmbientColor.Z = ConvertToRGB( World.Sectors[ i ].AmbientColor[ 2 ] * ColorNormalizer );
 
 #define SIMULATE_HDRI
 #ifdef SIMULATE_HDRI
@@ -587,7 +586,7 @@ static void CreateEnvCaptures() {
         //AmbientColor *= 0.1f;
 
         //AmbientColor *= World.Sectors[ i ].AmbientIntensity;
-        float Lum = ComputeGrayscaleColor( AmbientColor.r, AmbientColor.g, AmbientColor.b );
+        float Lum = ComputeGrayscaleColor( AmbientColor.X, AmbientColor.Y, AmbientColor.Z );
         if ( Lum < 0.01f ) {
             // too dark
             continue;
@@ -610,7 +609,7 @@ static void CreateEnvCaptures() {
             EnvCapture->SetBox( AABB.Size() + 0.011f );
             //EnvCapture->SetBox( AABB.Size() + 0.1f );
             //EnvCapture->SetSphere( Radius+0.011f );
-            EnvCapture->SetColor( AmbientColor * Tunes.AmbientScale );
+            EnvCapture->SetColor( Float3( AmbientColor * Tunes.AmbientScale ) );
             EnvCapture->SetInnerRange( 0.1f );
             EnvCapture->SetWeight( 1.0f );
 
@@ -631,10 +630,11 @@ static void CreateEnvCaptures() {
         }
 
         bool LittleDistance = false;
+        Double3 PositionD(Position);
         for ( int f = 0 ; f < World.Sectors[i].Faces.Length() && !LittleDistance ; f++ ) {
-            const FDPlane & Plane = World.Sectors[i].Faces[f]->Plane;
+            const PlaneD & Plane = World.Sectors[i].Faces[f]->Plane;
 
-            if ( FMath::Abs( Plane.Distance( Position ) ) < 0.3f ) {
+            if ( Plane.Dist( PositionD ).Abs() < 0.3 ) {
                 LittleDistance = true;
             }
         }
@@ -648,7 +648,7 @@ static void CreateEnvCaptures() {
         Light->SetType( FLightComponent::T_Point );
         Light->SetOuterRadius( Radius );
         Light->SetInnerRadius( Radius*0.9f );// Radius*0.01f );
-        Light->SetColor( AmbientColor * Tunes.LightScale );
+        Light->SetColor( Float3( AmbientColor * Tunes.LightScale ) );
 #endif
     }
 
@@ -663,7 +663,7 @@ static void CreateEnvCaptures() {
 }
 
 static void CreateWorldGeometry() {
-    FAxisAlignedBox Bounds;
+    BvAxisAlignedBox Bounds;
 
     // Create default texture
     FTextureResource * DefaultTexture = GResourceManager->GetResource< FTextureResource >( "Blade/mipmapchecker.png" );
@@ -731,7 +731,7 @@ static void CreateWorldGeometry() {
         //WorldRenderable->EnableShadowCast( Face->CastShadows );
         WorldRenderable->EnableShadowCast( false );
         WorldRenderable->SetSurfaceType( SURF_PLANAR );
-        WorldRenderable->SetSurfacePlane( FPlane(Face->Plane) );
+        WorldRenderable->SetSurfacePlane( PlaneF(Face->Plane) );
         
         if ( Face->Type == FBladeWorld::FT_Skydome || Face->TextureName.Length() == 0 ) {
             WorldRenderable->SetMaterialInstance( SkyboxMaterialInstance );
@@ -749,12 +749,12 @@ static void CreateWorldGeometry() {
             FMaterialInstance * MaterialInstance = Material->CreateInstance();
             MaterialInstance->Set( MaterialInstance->AddressOf( "SmpBaseColor" ), Texture );
 
-            //FVec4 AmbientColor;
+            //Float4 AmbientColor;
             //const float ColorNormalizer = 1.0f / 255.0f;
-            //AmbientColor.x = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 0 ] * ColorNormalizer );
-            //AmbientColor.y = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 1 ] * ColorNormalizer );
-            //AmbientColor.z = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 2 ] * ColorNormalizer );
-            //FVec4 Color = AmbientColor * World.Sectors[ Face->SectorIndex ].AmbientIntensity;
+            //AmbientColor.X = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 0 ] * ColorNormalizer );
+            //AmbientColor.Y = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 1 ] * ColorNormalizer );
+            //AmbientColor.Z = ConvertToRGB( World.Sectors[ Face->SectorIndex ].AmbientColor[ 2 ] * ColorNormalizer );
+            //Float4 Color = AmbientColor * World.Sectors[ Face->SectorIndex ].AmbientIntensity;
             //float Lum = ComputeGrayscaleColor( Color.r,Color.g,Color.b );
 
             //if ( Lum < 0.01f ) {
@@ -829,7 +829,7 @@ static void CreateDebugMesh() {
     Prim->SetPrimitive( P_Points );
     Prim->SetColor( 1,0,0,1 );
     for ( int i = 0 ; i < World.Vertices.Length() ; i++ ) {
-        Prim->DrawCircle( FVec3( World.Vertices[i].X*0.001f,-World.Vertices[i].Y*0.001f,-World.Vertices[i].Z*0.001f ), 0.1f );
+        Prim->DrawCircle( Float3( World.Vertices[i].X*0.001f,-World.Vertices[i].Y*0.001f,-World.Vertices[i].Z*0.001f ), 0.1f );
     }
     Prim->Flush();
 #endif
@@ -842,8 +842,8 @@ static void CreateDebugMesh() {
             FBladeWorld::FFace * f = World.Sectors[i].Faces[j];
             if ( f->Type == FBladeWorld::FT_Portal ) {
                 for ( int k = 0 ; k < f->Indices.Length() ; k++ ) {
-                    FDVec3 & v = World.Vertices[ f->Indices[k] ];
-                    Prim->EmitPoint( v.x*0.001f, -v.y*0.001f, -v.z*0.001f );
+                    Double3 & v = World.Vertices[ f->Indices[k] ];
+                    Prim->EmitPoint( v.X*0.001f, -v.Y*0.001f, -v.Z*0.001f );
                 }
                 Prim->Flush();
             }
@@ -858,14 +858,14 @@ static void CreateDebugMesh() {
         FBladeSF::FGhostSector & Sector = SF.GhostSectors[i];
 
         for ( int j = 0 ; j < Sector.Vertices.Length() ; j++ ) {
-            FVec2 & v = Sector.Vertices[ j ];
-            Prim->EmitPoint( v.x, Sector.FloorHeight, v.y );
+            Float2 & v = Sector.Vertices[ j ];
+            Prim->EmitPoint( v.X, Sector.FloorHeight, v.Y );
         }
         Prim->Flush();
 
         for ( int j = 0 ; j < Sector.Vertices.Length() ; j++ ) {
-            FVec2 & v = Sector.Vertices[ j ];
-            Prim->EmitPoint( v.x, Sector.RoofHeight, v.y );
+            Float2 & v = Sector.Vertices[ j ];
+            Prim->EmitPoint( v.X, Sector.RoofHeight, v.Y );
         }
         Prim->Flush();
     }
@@ -894,10 +894,10 @@ static void CreateDebugMesh() {
 }
 
 // TODO: Оптимизировать поиск сектора
-static int FindSector( const FVec3 & Pos ) {
+static int FindSector( const Double3 & Pos ) {
     bool Inside;
     int SectorIndex = -1;
-    int Offset;
+    EPlaneSide Offset;
     for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
         FBladeWorld::FSector & Sector = World.Sectors[i];
 
@@ -905,7 +905,7 @@ static int FindSector( const FVec3 & Pos ) {
         for ( int f = 0 ; f < Sector.Faces.Length() ; f++ ) {
             FBladeWorld::FFace * Face = Sector.Faces[f];
 
-            Offset = Face->Plane.SideOffset( Pos, 0.0f );
+            Offset = Face->Plane.SideOffset( Pos, 0.0 );
             if ( Offset != EPlaneSide::Front ) {
                 Inside = false;
                 break;
@@ -996,8 +996,8 @@ static void DebugCharacterSelection( float _TimeStep ) {
             int NextFrameIndex = RecFrameIndex + 1;
             float Lerp = Time - RecFrameIndex;
 
-            const FVec3 & P0 = Record->Frames[RecFrameIndex].Position;
-            const FVec3 & P1 = Record->Frames[NextFrameIndex].Position;
+            const Float3 & P0 = Record->Frames[RecFrameIndex].Position;
+            const Float3 & P1 = Record->Frames[NextFrameIndex].Position;
 
             const FQuat & R0 = Record->Frames[RecFrameIndex].Rotation;
             const FQuat & R1 = Record->Frames[NextFrameIndex].Rotation;
@@ -1019,23 +1019,23 @@ static void DebugCharacterSelection( float _TimeStep ) {
 static void DebugWorldPicking() {
 #ifdef DEBUG_WORLD_PICKING
     ImVec2 MousePos = ImGui::GetMousePos();
-    FSegment Segment = Camera->RetrieveRay( MousePos.x, MousePos.y );
+    FSegment Segment = Camera->RetrieveRay( MousePos.X, MousePos.Y );
     FChunkedMeshComponent::FRaycastResult Result;
 
     bool Intersected = ChunkedMesh->Raycast( Segment.start, Segment.end, Result );
     if ( Intersected ) {
 
-        FVec3 Vec = ( Segment.end - Segment.start ) * Result.Distance;
+        Float3 Vec = ( Segment.end - Segment.start ) * Result.Distance;
         float VecLength = FMath::Length( Vec );
         const float SphereRadius = 0.6f;
-        FVec3 Pos = Segment.start + ( VecLength > 0.0f ? ( Vec / VecLength ) * ( VecLength - 0.01f ) : FVec3(0.0f) ); // Shift little epsilon
+        Float3 Pos = Segment.start + ( VecLength > 0.0f ? ( Vec / VecLength ) * ( VecLength - 0.01f ) : Float3(0.0f) ); // Shift little epsilon
 
         static FMaterialInstance * PickerMaterial = NULL;
         if ( !PickerMaterial ) {
             FMaterialResource * Material = GResourceManager->GetResource< FMaterialResource >( "Blade/StandardMaterial.json" );
             PickerMaterial = Material->CreateInstance();
             //PickerMaterial->Set( PickerMaterial->AddressOf( "SmpBaseColor" ), DefaultTexture );
-            FVec4 AmbientColor(1.0f);
+            Float4 AmbientColor(1.0f);
             PickerMaterial->Set( PickerMaterial->AddressOf( "AmbientColor" ), AmbientColor );
         }
 
@@ -1064,10 +1064,10 @@ static void DebugWorldPicking() {
         Mover->SetPosition( Pos );
         int Sector = FindSector( Pos );
         if ( Sector >= 0 ) {
-            FVec4 AmbientColor;
-            AmbientColor.x = World.Sectors[ Sector ].AmbientColor[0] / 255.0f;
-            AmbientColor.y = World.Sectors[ Sector ].AmbientColor[1] / 255.0f;
-            AmbientColor.z = World.Sectors[ Sector ].AmbientColor[2] / 255.0f;
+            Float4 AmbientColor;
+            AmbientColor.X = World.Sectors[ Sector ].AmbientColor[0] / 255.0f;
+            AmbientColor.Y = World.Sectors[ Sector ].AmbientColor[1] / 255.0f;
+            AmbientColor.Z = World.Sectors[ Sector ].AmbientColor[2] / 255.0f;
             AmbientColor.w = World.Sectors[ Sector ].AmbientIntensity;// * 5;
 
 #ifndef UNLIT
@@ -1133,12 +1133,12 @@ static void DebugKeypress( float _TimeStep ) {
 }
 
 static void UpdateCameraAngles( FMouseMoveEvent & _Event ) {
-    static float Yaw = 0.0;
-    static float Pitch = 0.0;
-    const float RotationSpeed = 0.1f;
+    static Float Yaw = 0.0;
+    static Float Pitch = 0.0;
+    const Float RotationSpeed = 0.1f;
     Yaw -= _Event.DeltaX * RotationSpeed;
     Pitch -= _Event.DeltaY * RotationSpeed;
-    Pitch = FMath::Clamp( Pitch, -90.0f, 90.0f );
+    Pitch = Pitch.Clamp( -90.0f, 90.0f );
     CameraNode->SetAngles( Pitch, Yaw, 0 );
 }
 
@@ -1169,11 +1169,11 @@ static void UpdateCameraMovement( float _TimeStep ) {
     }
 
     if ( Window->IsKeyDown( Key_SPACE ) ) {
-        CameraNode->SetPosition( CameraNode->GetPosition() + FVec3(0,MoveSpeed,0)  );
+        CameraNode->SetPosition( CameraNode->GetPosition() + Float3(0,MoveSpeed,0)  );
     }
 
     if ( Window->IsKeyDown( Key_C ) ) {
-        CameraNode->SetPosition( CameraNode->GetPosition() + FVec3(0,-MoveSpeed,0) );
+        CameraNode->SetPosition( CameraNode->GetPosition() + Float3(0,-MoveSpeed,0) );
     }
 }
 
@@ -1200,18 +1200,18 @@ static void DebugSectorPortals( const FBladeWorld::FSector & Sector ) {
             DebugPortals->SetColor( 1,1,0,0.2f);
             DebugPortals->SetPrimitive( P_TriangleFan );
             for ( int k = f.Indices.Length()-1 ; k >=0  ; k-- ) {
-                FDVec3 & v = World.Vertices[ f.Indices[ k ] ];
+                Double3 & v = World.Vertices[ f.Indices[ k ] ];
 
-                DebugPortals->EmitPoint( v.x*0.001f, -v.y*0.001f, -v.z*0.001f );
+                DebugPortals->EmitPoint( v.X*0.001f, -v.Y*0.001f, -v.Z*0.001f );
             }
         } else {
             // Face with holes
             DebugPortals->SetPrimitive( P_Triangles );
             DebugPortals->SetColor( 1,1,1,0.2f);
             for ( int k = f.Indices.Length()-1 ; k >=0  ; k-- ) {
-                FDVec3 & v = f.Vertices[ f.Indices[ k ] ];
+                Double3 & v = f.Vertices[ f.Indices[ k ] ];
 
-                DebugPortals->EmitPoint( v.x*0.001f, -v.y*0.001f, -v.z*0.001f );
+                DebugPortals->EmitPoint( v.X*0.001f, -v.Y*0.001f, -v.Z*0.001f );
             }
         }
         DebugPortals->Flush();
@@ -1223,8 +1223,8 @@ static void DebugSectorPortals( const FBladeWorld::FSector & Sector ) {
         DebugPortals->SetColor( 0,0,1,0.2f);
         DebugPortals->SetPrimitive( P_TriangleFan );
         for ( int k = 0 ; k < Portal->Winding.Length() ; k++ ) {
-            FDVec3 & v = Portal->Winding[ k ];
-            DebugPortals->EmitPoint( v.x*0.001f, -v.y*0.001f, -v.z*0.001f );
+            Double3 & v = Portal->Winding[ k ];
+            DebugPortals->EmitPoint( v.X*0.001f, -v.Y*0.001f, -v.Z*0.001f );
         }
         DebugPortals->Flush();
     }
@@ -1233,8 +1233,8 @@ static void DebugSectorPortals( const FBladeWorld::FSector & Sector ) {
     //for ( int j = 0 ; j < Sector.Portals.Length() ; j++ ) {
     //    FBladeWorld::FFace & f = *Sector.Portals[ j ].Face;
     //    for ( int k = 0 ; k < f.Indices.Length() ; k++ ) {
-    //        FDVec3 & v = World.Vertices[ f.Indices[ k ] ];
-    //        DebugPortals->EmitPoint( v.x*0.001f, -v.y*0.001f, -v.z*0.001f );
+    //        Double3 & v = World.Vertices[ f.Indices[ k ] ];
+    //        DebugPortals->EmitPoint( v.X*0.001f, -v.Y*0.001f, -v.Z*0.001f );
     //    }
     //    DebugPortals->Flush();
     //}
@@ -1383,8 +1383,8 @@ Model.LoadModel( "E:/Games/Blade of Darkness/3DChars/Skl.BOD" );
     RenderTexture->CreateRenderTarget();
     RenderTarget = RenderTexture->GetRenderTarget();
     RenderTarget->SetEraseBackground( true );
-    RenderTarget->SetBackgroundColor( FVec4(0.4f,0.4f,1.0f,1) );
-    RenderTarget->SetWireframeColor( FVec4(1) );
+    RenderTarget->SetBackgroundColor( Float4(0.4f,0.4f,1.0f,1) );
+    RenderTarget->SetWireframeColor( Float4(1) );
     RenderTarget->SetWireframeLineWidth( 2.0f );
     RenderTarget->SetRenderMode( ERenderMode::Solid );
     RenderTarget->SetEraseDepth( true );
@@ -1559,19 +1559,19 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
             RenderTarget->SetBrightness( Brightness );
         }
 
-        static float Gamma = RenderTarget->GetColorGradingGamma().x;
+        static float Gamma = RenderTarget->GetColorGradingGamma().X;
         if ( ImGui::DragFloat( "Gamma", &Gamma, 0.01f, 0.0f, 1.0f ) ) {
-            RenderTarget->SetColorGradingGamma( FVec3(Gamma) );
+            RenderTarget->SetColorGradingGamma( Float3(Gamma) );
         }
 
-        static float Lift = RenderTarget->GetColorGradingLift().x;
+        static float Lift = RenderTarget->GetColorGradingLift().X;
         if ( ImGui::DragFloat( "Lift", &Lift, 0.01f, 0.0f, 1.0f ) ) {
-            RenderTarget->SetColorGradingLift( FVec3(Lift) );
+            RenderTarget->SetColorGradingLift( Float3(Lift) );
         }
 
-        static float Presat = RenderTarget->GetColorGradingPresaturation().x;
+        static float Presat = RenderTarget->GetColorGradingPresaturation().X;
         if ( ImGui::DragFloat( "Presat", &Presat, 0.01f, 0.0f, 1.0f ) ) {
-            RenderTarget->SetColorGradingPresaturation( FVec3(Presat) );
+            RenderTarget->SetColorGradingPresaturation( Float3(Presat) );
         }
 
         static float Temperature = RenderTarget->GetColorGradingTemperature();
@@ -1579,9 +1579,9 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
             RenderTarget->SetColorGradingTemperature( Temperature );
         }
 
-        static float Strength = RenderTarget->GetColorGradingTemperatureStrength().x;
+        static float Strength = RenderTarget->GetColorGradingTemperatureStrength().X;
         if ( ImGui::DragFloat( "Strength", &Strength, 0.01f, 0.0f, 1.0f ) ) {
-            RenderTarget->SetColorGradingTemperatureStrength( FVec3(Strength) );
+            RenderTarget->SetColorGradingTemperatureStrength( Float3(Strength) );
         }
 
         static float BrightNorm = RenderTarget->GetColorGradingBrightnessNormalization();
@@ -1640,7 +1640,7 @@ void FGame::OnUpdate( float _TimeStep ) {
     DebugWorldPicking();
     UpdateCameraMovement( _TimeStep );
 
-    int SectorIndex = FindSector( CameraNode->GetPosition() );
+    int SectorIndex = FindSector( Double3( CameraNode->GetPosition() ) );
     if ( SectorIndex >= 0 && SectorIndex != PrevSectorIndex ) {
         FBladeWorld::FSector & Sector = World.Sectors[SectorIndex];
 
@@ -1648,27 +1648,27 @@ void FGame::OnUpdate( float _TimeStep ) {
 
         // Update color grading inside the sector
 #if 1
-        FVec3 Color;
+        Float3 Color;
         byte YCoCg[3], RGB[3];
         FColorSpace::RGBToYCoCg( Sector.AmbientColor, YCoCg );
         YCoCg[0] = 128;//255;
         FColorSpace::YCoCgToRGB( YCoCg, RGB );
-        Color.r = RGB[0] / 255.0f;
-        Color.g = RGB[1] / 255.0f;
-        Color.b = RGB[2] / 255.0f;
+        Color.X = RGB[0] / 255.0f;
+        Color.Y = RGB[1] / 255.0f;
+        Color.Z = RGB[2] / 255.0f;
 
-        RenderTarget->SetColorGradingGamma( FVec3( 0.624f ) );
-        RenderTarget->SetColorGradingLift( FVec3( 0.472f ) );
-        RenderTarget->SetColorGradingPresaturation( FVec3( 1.0f ) );
+        RenderTarget->SetColorGradingGamma( Float3( 0.624f ) );
+        RenderTarget->SetColorGradingLift( Float3( 0.472f ) );
+        RenderTarget->SetColorGradingPresaturation( Float3( 1.0f ) );
         RenderTarget->SetColorGradingTemperature( 4601.678f );
-        RenderTarget->SetColorGradingTemperatureStrength( FVec3( 1.0f ) );
+        RenderTarget->SetColorGradingTemperatureStrength( Float3( 1.0f ) );
         RenderTarget->SetColorGradingBrightnessNormalization( 0.0f );
         RenderTarget->SetColorGradingGrain( Color );
         RenderTarget->SetColorGradingLUT( NULL );
 #else
         //byte YCoCg[3];
         //FColorSpace::RGBToYCoCg( Sector.AmbientColor, YCoCg );
-        FVec3 Color( FMath::Clamp( Sector.AmbientColor[0] / 255.0f * 0.3f + Sector.AmbientColor[1] / 255.0f * 0.4f + Sector.AmbientColor[2] / 255.0f * 0.3f - 0.5f, 0.001f, 0.5f ) );
+        Float3 Color( FMath::Clamp( Sector.AmbientColor[0] / 255.0f * 0.3f + Sector.AmbientColor[1] / 255.0f * 0.4f + Sector.AmbientColor[2] / 255.0f * 0.3f - 0.5f, 0.001f, 0.5f ) );
 
         //RenderTarget->SetTonemappingExposure( pow( (1.0f-Color.r) * 4.0f, 4.0 ) );
         RenderTarget->SetColorGradingGrain( Color );

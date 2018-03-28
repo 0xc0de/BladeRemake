@@ -36,7 +36,7 @@ struct FBladeSF {
         FString Name;
         float FloorHeight;
         float RoofHeight;
-        TPodArray< FVec2 > Vertices;
+        TPodArray< Float2 > Vertices;
         FString Group;
         FString Sound;
         float Volume;

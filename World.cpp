@@ -27,10 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 AN_SCENE_COMPONENT_DECL( FWorldComponent, CCF_ROOT | CCF_HIDDEN_IN_EDITOR )
 
-int FWorldComponent::FindSpatialArea( const FVec3 & _Position ) {
+int FWorldComponent::FindSpatialArea( const Float3 & _Position ) {
     bool Inside;
     int SectorIndex = -1;
-    int Offset;
+    EPlaneSide Offset;
+    Double3 Pos(_Position);
     for ( int i = 0 ; i < World.Sectors.Length() ; i++ ) {
         FBladeWorld::FSector & Sector = World.Sectors[i];
 
@@ -38,7 +39,7 @@ int FWorldComponent::FindSpatialArea( const FVec3 & _Position ) {
         for ( int f = 0 ; f < Sector.Faces.Length() ; f++ ) {
             FBladeWorld::FFace * Face = Sector.Faces[f];
 
-            Offset = Face->Plane.SideOffset( _Position, 0.0f );
+            Offset = Face->Plane.SideOffset( Pos, 0.0 );
             if ( Offset != EPlaneSide::Front ) {
                 Inside = false;
                 break;

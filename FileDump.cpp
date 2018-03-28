@@ -31,12 +31,12 @@ void SetDumpLog( bool _Enable ) {
 }
 
 void DumpUnknownBytes( FFileAbstract * _File, int _BytesCount ) {
-    byte * Bytes = new byte[ _BytesCount ];
-    long Position = _File->Tell();
+    Byte * Bytes = new Byte[ _BytesCount ];
+    Long Position = _File->Tell();
     _File->Read( Bytes, _BytesCount );
     if ( DumpLogEnabled ) {
-        for ( byte * pByte = Bytes ; pByte < &Bytes[_BytesCount] ; pByte++ ) {
-            Out() << FMath::ToHexString( Position++, true ) << ":" << FMath::ToHexString( *pByte, true ) << char( *pByte );
+        for ( Byte * pByte = Bytes ; pByte < &Bytes[_BytesCount] ; pByte++ ) {
+            Out() << ( Position++ ).ToHexString( true ) << ":" << ( *pByte ).ToHexString( true ) << char( *pByte );
         }
     }
     delete [] Bytes;
@@ -44,87 +44,87 @@ void DumpUnknownBytes( FFileAbstract * _File, int _BytesCount ) {
 
 void DumpIntOrFloat( FFileAbstract * _File ) {
     int32 Unknown;
-    byte * pUnknown = (byte *)&Unknown;
+    Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt32( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 4, true ) << ":" << Unknown << *(float *)&Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true ) << FMath::ToHexString( pUnknown[2], true ) << FMath::ToHexString( pUnknown[3], true );
+        Out() << Long( _File->Tell() - 4 ).ToHexString( true ) << ":" << Unknown << *(float *)&Unknown << "hex :" << pUnknown[0].ToHexString( true ) << pUnknown[1].ToHexString( true ) << pUnknown[2].ToHexString( true ) << pUnknown[3].ToHexString( true );
     }
 }
 
 int32 DumpInt( FFileAbstract * _File ) {
     int32 Unknown;
-    byte * pUnknown = (byte *)&Unknown;
+    Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt32( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 4, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true ) << FMath::ToHexString( pUnknown[2], true ) << FMath::ToHexString( pUnknown[3], true );
+        Out() << Long( _File->Tell() - 4 ).ToHexString( true ) << ":" << Unknown << "hex :" << pUnknown[0].ToHexString( true ) << pUnknown[1].ToHexString( true ) << pUnknown[2].ToHexString( true ) << pUnknown[3].ToHexString( true );
     }
     return Unknown;
 }
 
 int16 DumpShort( FFileAbstract * _File ) {
     int16 Unknown;
-    byte * pUnknown = (byte *)&Unknown;
+    Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt16( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 2, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true );
+        Out() << Long( _File->Tell() - 2 ).ToHexString( true ) << ":" << Unknown << "hex :" << pUnknown[0].ToHexString( true ) << pUnknown[1].ToHexString( true );
     }
     return Unknown;
 }
 
 int32 DumpIntNotSeek( FFileAbstract * _File ) {
     int32 Unknown;
-    byte * pUnknown = (byte *)&Unknown;
+    Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt32( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 4, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true ) << FMath::ToHexString( pUnknown[2], true ) << FMath::ToHexString( pUnknown[3], true );
+        Out() << Long( _File->Tell() - 4 ).ToHexString( true ) << ":" << Unknown << "hex :" << pUnknown[0].ToHexString( true ) << pUnknown[1].ToHexString( true ) << pUnknown[2].ToHexString( true ) << pUnknown[3].ToHexString( true );
     }
     _File->Seek( -4, FFileAbstract::SeekCur );
     return Unknown;
 }
 
 int32 DumpByte( FFileAbstract * _File ) {
-    byte Unknown;
+    Byte Unknown;
     _File->Read( &Unknown, 1 );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 1, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( Unknown, true );
+        Out() << Long( _File->Tell() - 1 ).ToHexString( true ) << ":" << Unknown << "hex :" << Unknown.ToHexString( true );
     }
     return Unknown;
 }
 
 float DumpFloat( FFileAbstract * _File ) {
     float Unknown;
-    byte * pUnknown = (byte *)&Unknown;
+    Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapFloat( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 4, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true ) << FMath::ToHexString( pUnknown[2], true ) << FMath::ToHexString( pUnknown[3], true );
+        Out() << Long( _File->Tell() - 4 ).ToHexString( true ) << ":" << Unknown << "hex :" << pUnknown[0].ToHexString( true ) << pUnknown[1].ToHexString( true ) << pUnknown[2].ToHexString( true ) << pUnknown[3].ToHexString( true );
     }
     return Unknown;
 }
 
 double DumpDouble( FFileAbstract * _File ) {
     double Unknown;
-    byte * pUnknown = (byte *)&Unknown;
+    Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapDouble( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( _File->Tell() - 8, true ) << ":" << Unknown << "hex :" << FMath::ToHexString( pUnknown[0], true ) << FMath::ToHexString( pUnknown[1], true ) << FMath::ToHexString( pUnknown[2], true ) << FMath::ToHexString( pUnknown[3], true ) << FMath::ToHexString( pUnknown[4], true ) << FMath::ToHexString( pUnknown[5], true ) << FMath::ToHexString( pUnknown[6], true ) << FMath::ToHexString( pUnknown[7], true );
+        Out() << Long( _File->Tell() - 8 ).ToHexString( true ) << ":" << Unknown << "hex :" << pUnknown[0].ToHexString( true ) << pUnknown[1].ToHexString( true ) << pUnknown[2].ToHexString( true ) << pUnknown[3].ToHexString( true ) << pUnknown[4].ToHexString( true ) << pUnknown[5].ToHexString( true ) << pUnknown[6].ToHexString( true ) << pUnknown[7].ToHexString( true );
     }
     return Unknown;
 }
 
 FString DumpString( FFileAbstract * _File ) {
     FString Unknown;
-    int FileOffset = _File->Tell();
+    Long FileOffset = _File->Tell();
     _File->ReadString( Unknown );
     if ( DumpLogEnabled ) {
-        Out() << FMath::ToHexString( FileOffset, true ) << ":" << Unknown;
+        Out() << FileOffset.ToHexString( true ) << ":" << Unknown;
     }
     return Unknown;
 }
 
 int DumpFileOffset( FFileAbstract * _File ) {
-    int FileOffset = _File->Tell();
+    Long FileOffset = _File->Tell();
     if ( DumpLogEnabled ) {
-        Out() << "FileOffset :" << FMath::ToHexString( FileOffset, true );
+        Out() << "FileOffset :" << FileOffset.ToHexString( true );
     }
     return FileOffset;
 }

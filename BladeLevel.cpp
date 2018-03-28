@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <Framework/IO/Public/FileUrl.h>
 
 FTextureResource * SkyboxTexture;
-FVec3 SkyColorAvg;
+Float3 SkyColorAvg;
 
 // Skip sequences of //
 static void FixPath( char * _Path ) {

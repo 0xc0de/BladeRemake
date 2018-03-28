@@ -37,14 +37,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void FBladeModel::LoadModel( const char * _FileName ) {
     struct FVertex {
-        FDVec3 Position;
-        FDVec3 Normal;
+        Double3 Position;
+        Double3 Normal;
         TPodArray< int > Polygons;
     };
 
     struct FPolygon {
         int Indices[3];
-        FVec2 TexCoords[3];
+        Float2 TexCoords[3];
         int Unknown;
         FString TextureName;
         int Use;
@@ -70,15 +70,15 @@ void FBladeModel::LoadModel( const char * _FileName ) {
     for ( int i = 0 ; i < VerticesCount ; i++ ) {
         FVertex & v = Vertices[ i ];
 
-        v.Position.x = DumpDouble( File );
-        v.Position.y = DumpDouble( File );
-        v.Position.z = DumpDouble( File );
+        v.Position.X = DumpDouble( File );
+        v.Position.Y = DumpDouble( File );
+        v.Position.Z = DumpDouble( File );
 
-        v.Position *= BLADE_COORD_SCALE;
+        v.Position *= BLADE_COORD_SCALE_D;
 
-        v.Normal.x = DumpDouble( File );
-        v.Normal.y = -DumpDouble( File );
-        v.Normal.z = -DumpDouble( File );
+        v.Normal.X = DumpDouble( File );
+        v.Normal.Y = -DumpDouble( File );
+        v.Normal.Z = -DumpDouble( File );
     }
 
     std::map< std::string, TPodArray< int > > TextureMap;
@@ -104,12 +104,12 @@ void FBladeModel::LoadModel( const char * _FileName ) {
 
         TextureMap[ Polygon.TextureName.Str() ].Append( i );
     
-        Polygon.TexCoords[0].x = DumpFloat( File );
-        Polygon.TexCoords[1].x = DumpFloat( File );
-        Polygon.TexCoords[2].x = DumpFloat( File );
-        Polygon.TexCoords[0].y = 1.0f - DumpFloat( File );
-        Polygon.TexCoords[1].y = 1.0f - DumpFloat( File );
-        Polygon.TexCoords[2].y = 1.0f - DumpFloat( File );
+        Polygon.TexCoords[0].X = DumpFloat( File );
+        Polygon.TexCoords[1].X = DumpFloat( File );
+        Polygon.TexCoords[2].X = DumpFloat( File );
+        Polygon.TexCoords[0].Y = 1.0f - DumpFloat( File );
+        Polygon.TexCoords[1].Y = 1.0f - DumpFloat( File );
+        Polygon.TexCoords[2].Y = 1.0f - DumpFloat( File );
 
         SetDumpLog( true );
         Polygon.Unknown = DumpInt( File );
@@ -143,7 +143,7 @@ void FBladeModel::LoadModel( const char * _FileName ) {
 
             SetDumpLog( false );
             for ( int i = 0 ; i < 16 ; i++ ) {
-                FMath::ToPtr( Part.Matrix )[i] = DumpDouble( File );
+                Part.Matrix.ToPtr()[i] = DumpDouble( File );
             }
             SetDumpLog( true );
 
@@ -189,14 +189,14 @@ void FBladeModel::LoadModel( const char * _FileName ) {
                         FMeshVertex & Vertex = MeshVertices.Append();
 
                         Vertex.Clear();
-                        Vertex.Position.x = v.Position.x;
-                        Vertex.Position.y = v.Position.y;
-                        Vertex.Position.z = v.Position.z;
-                        Vertex.Normal.x = v.Normal.x;
-                        Vertex.Normal.y = v.Normal.y;
-                        Vertex.Normal.z = v.Normal.z;
+                        Vertex.Position.X = v.Position.X;
+                        Vertex.Position.Y = v.Position.Y;
+                        Vertex.Position.Z = v.Position.Z;
+                        Vertex.Normal.X = v.Normal.X;
+                        Vertex.Normal.Y = v.Normal.Y;
+                        Vertex.Normal.Z = v.Normal.Z;
                         Vertex.TexCoord = Polygon.TexCoords[ j ];
-//Vertex.TexCoord.y=1.0f-Vertex.TexCoord.y;
+//Vertex.TexCoord.Y=1.0f-Vertex.TexCoord.Y;
 
                         MeshIndices.Append( MeshVertices.Length() - 1 );
                     }
@@ -250,7 +250,7 @@ void FBladeModel::LoadModel( const char * _FileName ) {
             Socket.Name = DumpString( File );
 
             for ( int i = 0 ; i < 16 ; i++ ) {
-                FMath::ToPtr( Socket.Matrix )[i] = DumpDouble( File );
+                Socket.Matrix.ToPtr()[i] = DumpDouble( File );
             }
 
             SetDumpLog( true );
@@ -331,12 +331,12 @@ void FBladeModel::LoadModel( const char * _FileName ) {
                     FMeshVertex & Vertex = MeshVertices.Append();
 
                     Vertex.Clear();
-                    Vertex.Position.x = v.Position.x;
-                    Vertex.Position.y = v.Position.y;
-                    Vertex.Position.z = v.Position.z;
-                    Vertex.Normal.x = v.Normal.x;
-                    Vertex.Normal.y = v.Normal.y;
-                    Vertex.Normal.z = v.Normal.z;
+                    Vertex.Position.X = v.Position.X;
+                    Vertex.Position.Y = v.Position.Y;
+                    Vertex.Position.Z = v.Position.Z;
+                    Vertex.Normal.X = v.Normal.X;
+                    Vertex.Normal.Y = v.Normal.Y;
+                    Vertex.Normal.Z = v.Normal.Z;
                     Vertex.TexCoord = Polygon.TexCoords[ j ];
 
                     MeshIndices.Append( MeshVertices.Length() - 1 );
@@ -357,7 +357,7 @@ void FBladeModel::LoadModel( const char * _FileName ) {
 
         // Matrix 4x4
         for ( int i = 0 ; i < 16 ; i++ ) {
-            FMath::ToPtr( Part.Matrix )[ i ] = DumpDouble( File );
+            Part.Matrix.ToPtr()[ i ] = DumpDouble( File );
         }
         //Out() << "Matrix:" << Part.Matrix;
 

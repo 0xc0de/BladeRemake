@@ -36,12 +36,12 @@ struct FBladeModel {
     struct FPart {
         FString Name;
         int UnknownIndex;
-        FMat4 Matrix;
+        Float4x4 Matrix;
     };
 
     struct FSocket {
         FString Name;
-        FMat4 Matrix;
+        Float4x4 Matrix;
         int UnknownIndex;
     };
 

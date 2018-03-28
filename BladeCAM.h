@@ -32,8 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct FCameraRecord {
 
     struct FFrame {
-        FVec3 Position;
-        FQuat Rotation;
+        Float3 Position;
+        Quat Rotation;
         float TimeScale;
     };
 

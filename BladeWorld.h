@@ -32,7 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // Blade .BW file loader
 
-extern const FVec3 BLADE_COORD_SCALE;
+extern const Double3 BLADE_COORD_SCALE_D;
+extern const Float3 BLADE_COORD_SCALE_F;
 
 struct FBladeWorld {
     enum EFaceType {
@@ -61,33 +62,33 @@ struct FBladeWorld {
         FBSPNode * Children[ 2 ];  // NULL for leafs
 
         // Only for nodes
-        FDPlane   Plane;
+        PlaneD   Plane;
 
         // Only for NT_TexInfo
         uint64 UnknownSignature;
         FString TextureName;
-        FDVec3 TexCoordAxis[ 2 ];
+        Double3 TexCoordAxis[ 2 ];
         float TexCoordOffset[ 2 ];
 
         // Only for leafs
         TArray< FLeafIndices > Unknown;
 
         // Leaf triangles
-        TPodArray< FDVec3 > Vertices;
+        TPodArray< Double3 > Vertices;
         TPodArray< unsigned int > Indices;
     };
 
     struct FFace {
         int Type;
-        FDPlane Plane;
+        PlaneD Plane;
         uint64 UnknownSignature;    // Только для фейсов с текстурой
         FString TextureName;        // Только для фейсов с текстурой
-        FDVec3 TexCoordAxis[2];     // Только для фейсов с текстурой
+        Double3 TexCoordAxis[2];     // Только для фейсов с текстурой
         float TexCoordOffset[2];    // Только для фейсов с текстурой
         bool CastShadows;
 
         // result mesh
-        TPodArray< FDVec3 > Vertices;
+        TPodArray< Double3 > Vertices;
         TPodArray< unsigned int > Indices;
 
         int SectorIndex;
@@ -100,10 +101,10 @@ struct FBladeWorld {
     struct FPortal {
         FFace * Face;
         int32 ToSector;
-        TPolygon< double > Winding;
+        PolygonD Winding;
 
         // Some planes. What they mean?
-        TPodArray< FDPlane > Planes;
+        TPodArray< PlaneD > Planes;
 
         bool Marked;
     };
@@ -113,17 +114,17 @@ struct FBladeWorld {
         byte AmbientColor[ 3 ];
         float AmbientIntensity;
 
-        FVec3 LightDir;
+        Float3 LightDir;
 
         TArray< FFace * > Faces;
         TArray< FPortal * > Portals;
 
-        FAxisAlignedBox Bounds;
-        FVec3 Centroid;
+        BvAxisAlignedBox Bounds;
+        Float3 Centroid;
     };
 
     TArray< FBladeMap::FAtmosphereEntry > Atmospheres;
-    TArray< FDVec3 > Vertices;
+    TArray< Double3 > Vertices;
     TArray< FSector > Sectors;
     TArray< FMeshOffset > MeshOffsets;
     TArray< FMeshVertex > MeshVertices;
@@ -136,7 +137,7 @@ struct FBladeWorld {
     TPodArray< FBSPNode * > BSPNodes;
     TPodArray< FBSPNode * > Leafs; // Temporary used on loading
 
-    FAxisAlignedBox Bounds;
+    BvAxisAlignedBox Bounds;
     bool HasSky;
 
     ~FBladeWorld();
@@ -156,9 +157,9 @@ private:
     void LoadFaceBSP( FFace * _Face );
     void LoadSkydomeFace( FFace * _Face );
     void ReadIndices( TPodArray< unsigned int > & _Indices );
-    void ReadWinding( TPolygon< double > & _Winding );
+    void ReadWinding( PolygonD & _Winding );
     FBSPNode * ReadBSPNode_r( FFace * _Face );
-    void CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FClipperContour > & _Holes, TPolygon< double > * _Winding, FBSPNode * _Node );
+    void CreateWindings_r( FBladeWorld::FFace * _Face, const TArray< FClipperContour > & _Holes, PolygonD * _Winding, FBSPNode * _Node );
     void FilterWinding_r( FBladeWorld::FFace * _Face, FBSPNode * _Node, FBSPNode * _Leaf );
     void WorldGeometryPostProcess();
 
