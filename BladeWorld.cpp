@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "BladeWorld.h"
 #include "FileDump.h"
 
-#include <Framework/Geometry/Public/PolygonClipper.h>
-#include <Framework/IO/Public/FileUrl.h>
-#include <Framework/Containers/Public/Sort.h>
+#include <Engine/Utilites/Public/PolygonClipper.h>
+#include <Engine/IO/Public/FileUrl.h>
+#include <Engine/Core/Public/Sort.h>
 
 FBladeWorld World;
 
@@ -107,7 +107,7 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
 
     FreeWorld();
 
-    int32 AtmospheresCount;
+    int32_t AtmospheresCount;
     File->ReadSwapInt32( AtmospheresCount );
     Atmospheres.Resize( AtmospheresCount );
     for ( int i = 0 ; i < AtmospheresCount ; i++ ) {
@@ -117,7 +117,7 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
         File->ReadSwapFloat( Atmo.Intensity );
     }
 
-    int32 VerticesCount;
+    int32_t VerticesCount;
     File->ReadSwapInt32( VerticesCount );
     Vertices.Resize( VerticesCount );
     for ( int i = 0 ; i < VerticesCount ; i++ ) {
@@ -126,7 +126,7 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
         File->ReadSwapDouble( Vertices[i].Z.Value );
     }
 
-    int32 SectorsCount;
+    int32_t SectorsCount;
     File->ReadSwapInt32( SectorsCount );
     Sectors.Resize( SectorsCount );
 
@@ -203,7 +203,7 @@ void FBladeWorld::LoadWorld( const char * _FileName ) {
 
         SetDumpLog( true );
 
-        int32 FaceCount;
+        int32_t FaceCount;
         File->ReadSwapInt32( FaceCount );
 
         if (FaceCount<4||FaceCount>100 ) {
@@ -337,7 +337,7 @@ void FBladeWorld::LoadFace( FFace * _Face ) {
 }
 
 void FBladeWorld::ReadIndices( TPodArray< unsigned int > & _Indices ) {
-    int32 NumIndices;
+    int32_t NumIndices;
     File->ReadSwapInt32( NumIndices );
     _Indices.Resize( NumIndices );
     for ( int k = 0 ; k < NumIndices ; k++ ) {
@@ -346,7 +346,7 @@ void FBladeWorld::ReadIndices( TPodArray< unsigned int > & _Indices ) {
 }
 
 void FBladeWorld::ReadWinding( PolygonD & _Winding ) {
-    int32 NumVertices;
+    int32_t NumVertices;
     int Index;
     File->ReadSwapInt32( NumVertices );
     if ( NumVertices == 0 || NumVertices > 32 ) {
@@ -535,7 +535,7 @@ void FBladeWorld::LoadFaceWithHole( FFace * _Face ) {
 
     Sectors[ _Face->SectorIndex ].Portals.Append( Portal );
 
-    int32 Count;
+    int32_t Count;
     File->ReadSwapInt32( Count );
     Portal->Planes.Resize( Count );
     for ( int k = 0 ; k < Count ; k++ ) {
@@ -726,7 +726,7 @@ void FBladeWorld::LoadFaceBSP( FFace * _Face ) {
 
             Sectors[ _Face->SectorIndex ].Portals.Append( Portal );
 
-            int32 Count;
+            int32_t Count;
             File->ReadSwapInt32( Count );
             Portal->Planes.Resize( Count );
             for ( int k = 0 ; k < Count ; k++ ) {
@@ -788,7 +788,7 @@ FBladeWorld::FBSPNode * FBladeWorld::ReadBSPNode_r( FFace * _Face ) {
 
     FBSPNode * Node = CreateBSPNode();
 
-    File->ReadSwapInt32( ( int32 & )Node->Type );
+    File->ReadSwapInt32( ( int32_t & )Node->Type );
 
     if ( Node->Type == NT_Leaf ) {
 
@@ -804,7 +804,7 @@ FBladeWorld::FBSPNode * FBladeWorld::ReadBSPNode_r( FFace * _Face ) {
 
             Unknown.UnknownIndex = DumpInt( File );
 
-            uint32 IndicesCount = DumpInt( File );
+            uint32_t IndicesCount = DumpInt( File );
             Unknown.Indices.Resize( IndicesCount );
             for ( int j = 0; j < IndicesCount; j++ ) {
                 Unknown.Indices[ j ] = DumpInt( File );
@@ -1100,7 +1100,7 @@ void FBladeWorld::FreeWorld() {
 
             Sectors[ _Face->SectorIndex ].Portals.Append( Portal );
 
-            int32 Count;
+            int32_t Count;
             File->ReadSwapInt32( Count );
             Portal->Planes.Resize( Count );
             for ( int k = 0 ; k < Count ; k++ ) {

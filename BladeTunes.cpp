@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "BladeTunes.h"
 
-#include <Framework/IO/Public/FileUrl.h>
+#include <Engine/IO/Public/FileUrl.h>
 
 void FBladeTunes::SetDefaults() {
     AmbientScale = 0.2f;

@@ -3,8 +3,8 @@
 #include <Engine/Renderer/Public/SkinnedMeshResource.h>
 #include <Engine/Renderer/Public/SkinnedAnimResource.h>
 #include <Engine/Resource/Public/ResourceManager.h>
-#include <Framework/ImageUtils/Public/ImageUtils.h>
-#include <Framework/GHI/GHIExt.h>
+#include <Engine/Utilites/Public/ImageUtils.h>
+#include <Engine/GHI/GHIExt.h>
 
 #include <unordered_set>
 

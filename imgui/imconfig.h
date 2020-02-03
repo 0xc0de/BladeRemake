@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Framework/Math/Public/Math.h>
+#include <Engine/Core/Public/Math.h>
 
 #define IMGUI_API //ANGIE_API
 

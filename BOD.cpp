@@ -35,9 +35,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ImGuiAPI.h"
 #include "Common.h"
 
-#include <Framework/IO/Public/FileUrl.h>
-#include <Framework/Math/Public/Color.h>
-#include <Framework/Cmd/Public/CmdManager.h>
+#include <Engine/IO/Public/FileUrl.h>
+#include <Engine/Core/Public/Color.h>
+#include <Engine/Utilites/Public/CmdManager.h>
 
 #include <Engine/EntryDecl.h>
 
@@ -1259,7 +1259,7 @@ void FGame::OnInitialize() {
 
     Window = GetPrimaryWindow();
 
-    Scene = TNew< FScene >();
+    Scene = FCore::TNew< FScene >();
 
     Scene->GetOrCreateComponent< FWorldComponent >();
     Scene->GetOrCreateComponent< FPhysicsComponent >();
@@ -1461,7 +1461,7 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
 
     ImGui::SetMouseCursor( ImGuiMouseCursor_None );
 
-#if 1
+#if 0
     ImGui::SetNextWindowPos(ImVec2(0,0));
     ImGui::SetNextWindowSize( ImVec2(RenderTexture->GetWidth(),RenderTexture->GetHeight()) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
@@ -1482,7 +1482,7 @@ void FGame::OnUpdateGui( FUpdateGuiEvent & _Event ) {
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
 #endif
-#if 0
+#if 1
     ImGui::SetNextWindowPos(ImVec2(0,0));
     ImGui::SetNextWindowSize( ImVec2(650,150) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );

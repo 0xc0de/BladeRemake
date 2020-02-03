@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "BladeMap.h"
 
-#include <Framework/Geometry/Public/Polygon.h>
-#include <Framework/Geometry/Public/PolygonClipper.h>
+#include <Engine/Utilites/Public/Polygon.h>
+#include <Engine/Utilites/Public/PolygonClipper.h>
 #include <Engine/Renderer/Public/StaticMeshResource.h>
 
 // Blade .BW file loader
@@ -52,8 +52,8 @@ struct FBladeWorld {
     };
 
     struct FLeafIndices {
-        uint32 UnknownIndex;
-        TPodArray< uint32 > Indices;
+        uint32_t UnknownIndex;
+        TPodArray< uint32_t > Indices;
     };
 
     struct FBSPNode {
@@ -65,7 +65,7 @@ struct FBladeWorld {
         PlaneD   Plane;
 
         // Only for NT_TexInfo
-        uint64 UnknownSignature;
+        uint64_t UnknownSignature;
         FString TextureName;
         Double3 TexCoordAxis[ 2 ];
         float TexCoordOffset[ 2 ];
@@ -81,7 +81,7 @@ struct FBladeWorld {
     struct FFace {
         int Type;
         PlaneD Plane;
-        uint64 UnknownSignature;    // Только для фейсов с текстурой
+        uint64_t UnknownSignature;    // Только для фейсов с текстурой
         FString TextureName;        // Только для фейсов с текстурой
         Double3 TexCoordAxis[2];     // Только для фейсов с текстурой
         float TexCoordOffset[2];    // Только для фейсов с текстурой
@@ -100,7 +100,7 @@ struct FBladeWorld {
 
     struct FPortal {
         FFace * Face;
-        int32 ToSector;
+        int32_t ToSector;
         PolygonD Winding;
 
         // Some planes. What they mean?

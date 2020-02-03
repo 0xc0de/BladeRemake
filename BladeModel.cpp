@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "FileDump.h"
 
-#include <Framework/IO/Public/FileUrl.h>
+#include <Engine/IO/Public/FileUrl.h>
 #include <Engine/Resource/Public/ResourceManager.h>
 
 #include <map>
@@ -123,7 +123,7 @@ void FBladeModel::LoadModel( const char * _FileName ) {
 
     Parts.Resize( PartsCount );
 
-    uint32 StrLen = DumpIntNotSeek( File );
+    uint32_t StrLen = DumpIntNotSeek( File );
     if ( StrLen != 0xffffffff ) {
 
         SetDumpLog( true );

@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "BladeMap.h"
 
-#include <Framework/IO/Public/FileUrl.h>
+#include <Engine/IO/Public/FileUrl.h>
 
 void FBladeMap::LoadMap( const char * _FileName ) {
     FFileAbstract * File = FFiles::OpenFileFromUrl( _FileName, FFileAbstract::M_Read );
@@ -38,9 +38,9 @@ void FBladeMap::LoadMap( const char * _FileName ) {
     File->ReadString( MapaBlade );
     File->ReadByte( Unknown );
     File->Seek( 9, FFileAbstract::SeekCur ); // Nine zero bytes?
-    int32 UnknownInt32;
+    int32_t UnknownInt32;
     File->ReadSwapInt32( UnknownInt32 );
-    int16 BitmapsCount;
+    int16_t BitmapsCount;
     File->ReadSwapInt16( BitmapsCount );
     Textures.Resize( BitmapsCount );
     for ( int i = 0 ; i < BitmapsCount ; i++ ) {
@@ -50,7 +50,7 @@ void FBladeMap::LoadMap( const char * _FileName ) {
         File->ReadByte( Unknown );
         File->Seek( 31, FFileAbstract::SeekCur ); // Thirty one zero bytes?
     };
-    int16 AtmospheresCount;
+    int16_t AtmospheresCount;
     File->ReadSwapInt16( AtmospheresCount );
     Atmospheres.Resize( AtmospheresCount );
     for ( int i = 0 ; i < AtmospheresCount ; i++ ) {
@@ -79,9 +79,9 @@ void FBladeMap::LoadMap( const char * _FileName ) {
     File->ReadSwapDouble( Limits.Upper );
     File->ReadSwapDouble( Limits.Lower );
 
-    int16 SectorsCount;
-    File->ReadSwapInt16( SectorsCount ); // FIXME: int16 or int32 ???
-    int16 UnknownInt16;
+    int16_t SectorsCount;
+    File->ReadSwapInt16( SectorsCount ); // FIXME: int16 or int32_t ???
+    int16_t UnknownInt16;
     // The value such as WORD (2 bytes) - is equal 1 (? Why?).
     File->ReadSwapInt16( UnknownInt16 );
     Sectors.Resize( SectorsCount );
@@ -154,7 +154,7 @@ void FBladeMap::LoadMap( const char * _FileName ) {
         File->ReadString( Sector.AttributeName ); // FIXME: Read Array of Attributes?
 
         // Parameters of points
-        int16 VerticesCount;
+        int16_t VerticesCount;
         File->ReadSwapInt16( VerticesCount );
         Sector.Vertices.Resize( VerticesCount );
         for ( int i = 0 ; i < VerticesCount ; i++ ) {
@@ -163,7 +163,7 @@ void FBladeMap::LoadMap( const char * _FileName ) {
         }
 
         // Parameters of walls
-        int16 WallsCount;
+        int16_t WallsCount;
         File->ReadSwapInt16( WallsCount );
         Sector.Walls.Resize( WallsCount );
         for ( int i = 0 ; i < WallsCount ; i++ ) {
@@ -179,14 +179,14 @@ void FBladeMap::LoadMap( const char * _FileName ) {
             File->ReadSwapFloat( Wall.X );
             File->ReadSwapFloat( Wall.Y );
             Out() << Wall.Scale << Wall.CornerOfTurn << Wall.X << Wall.Y;
-            int16 UnknownCount;
+            int16_t UnknownCount;
             File->ReadSwapInt16( UnknownCount );
             for ( int UnknownEntryIndex = 0 ; UnknownEntryIndex < UnknownCount ; UnknownEntryIndex++ ) {
                 File->Seek( 28, FFileAbstract::SeekCur ); // FIXME?
             }
         }
 
-        int16 UnknownCount;
+        int16_t UnknownCount;
         File->ReadSwapInt16( UnknownCount );
         for ( int i = 0 ; i < UnknownCount ; i++ ) {
             File->Seek( 43, FFileAbstract::SeekCur ); // FIXME?

@@ -24,8 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Framework/Containers/Public/String.h>
-#include <Framework/Containers/Public/Array.h>
+#include <Engine/Core/Public/String.h>
+#include <Engine/Core/Public/Array.h>
 
 // Blade .MP file loader
 
@@ -53,8 +53,8 @@ struct FBladeMap {
 
     struct FWall {
         byte Color[ 4 ];
-        int32 IncludeFloor;
-        int32 IncludeCeil;
+        int32_t IncludeFloor;
+        int32_t IncludeCeil;
         FString TextureName;
         float Scale;
         float CornerOfTurn;
@@ -80,7 +80,7 @@ struct FBladeMap {
         double FloorHeight;
         byte FloorType;
         double FloorSphericalRadius;
-        int32 FloorSegmentsCount;
+        int32_t FloorSegmentsCount;
         double FloorEllipseXParameter;
         double FloorEllipseYParameter;
 
@@ -93,7 +93,7 @@ struct FBladeMap {
         double CeilHeight;
         byte CeilType;
         double CeilSphericalRadius;
-        int32 CeilSegmentsCount;
+        int32_t CeilSegmentsCount;
         double CeilEllipseXParameter;
         double CeilEllipseYParameter;
 

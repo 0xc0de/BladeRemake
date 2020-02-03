@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Framework/Containers/Public/Array.h>
-#include <Framework/Math/Public/Math.h>
-#include <Framework/Containers/Public/String.h>
+#include <Engine/Core/Public/Array.h>
+#include <Engine/Core/Public/Math.h>
+#include <Engine/Core/Public/String.h>
 
 #include <Engine/Renderer/Public/StaticMeshResource.h>
 

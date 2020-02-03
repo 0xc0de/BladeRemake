@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "BladeTextures.h"
 
-#include <Framework/IO/Public/FileUrl.h>
-#include <Framework/ImageUtils/Public/ImageUtils.h>
-#include <Framework/GHI/GHIExt.h>
+#include <Engine/IO/Public/FileUrl.h>
+#include <Engine/Utilites/Public/ImageUtils.h>
+#include <Engine/GHI/GHIExt.h>
 
 #include <Engine/Resource/Public/ResourceManager.h>
 
@@ -64,32 +64,32 @@ void LoadTextures( const char * _FileName ) {
         return;
     }
 
-    int32 TexturesCount;
+    int32_t TexturesCount;
     File->ReadSwapInt32( TexturesCount );
     for ( int i = 0 ; i < TexturesCount ; i++ ) {
-        int16 UnknownInt16;
+        int16_t UnknownInt16;
 
         File->ReadSwapInt16( UnknownInt16 );
 
-        int32 Checksum;
+        int32_t Checksum;
         File->ReadSwapInt32( Checksum );
 
-        int32 Size;
+        int32_t Size;
         File->ReadSwapInt32( Size );
 
         FString TextureName;
         File->ReadString( TextureName );
 
-        int32 Type;
+        int32_t Type;
         File->ReadSwapInt32( Type );
 
-        int32 Width;
+        int32_t Width;
         File->ReadSwapInt32( Width );
 
-        int32 Height;
+        int32_t Height;
         File->ReadSwapInt32( Height );
 
-        int32 TextureDataLength = Size - 12;
+        int32_t TextureDataLength = Size - 12;
 
         byte * TextureData = new byte[ TextureDataLength ];
 
@@ -135,7 +135,7 @@ void LoadTextures( const char * _FileName ) {
             // Swap to bgr
             int Count = Width * Height * 3;
             for ( int j = 0; j < Count ; j += 3 ) {
-                FBase::SwapArgs( TextureData[ j ], TextureData[ j + 2 ] );
+                FCore::SwapArgs( TextureData[ j ], TextureData[ j + 2 ] );
             }
             LoadTexture( TextureName.Str(), TextureData, Width, Height );
             break;
@@ -184,29 +184,29 @@ FTextureResource * LoadDome( const char * _FileName, Float3 * _SkyColorAvg ) {
 
     memset( Lods, 0, sizeof( Lods ) );
 
-    int32 TexturesCount;
+    int32_t TexturesCount;
     File->ReadSwapInt32( TexturesCount );
     for ( int i = 0 ; i < TexturesCount ; i++ ) {
-        int16 UnknownInt16;
+        int16_t UnknownInt16;
 
         File->ReadSwapInt16( UnknownInt16 );
 
-        int32 Checksum;
+        int32_t Checksum;
         File->ReadSwapInt32( Checksum );
 
-        int32 Size;
+        int32_t Size;
         File->ReadSwapInt32( Size );
 
         FString TextureName;
         File->ReadString( TextureName );
 
-        int32 Type;
+        int32_t Type;
         File->ReadSwapInt32( Type );
 
-        int32 Width;
+        int32_t Width;
         File->ReadSwapInt32( Width );
 
-        int32 Height;
+        int32_t Height;
         File->ReadSwapInt32( Height );
 
         Desc.Width = Width;
@@ -229,7 +229,7 @@ FTextureResource * LoadDome( const char * _FileName, Float3 * _SkyColorAvg ) {
 
         Desc.ByteLength += Lods[ DomeFace ].ByteLength;
 
-        int32 TextureDataLength = Size - 12;
+        int32_t TextureDataLength = Size - 12;
 
         byte * TextureData = new byte[ TextureDataLength ];
 

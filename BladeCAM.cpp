@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "BladeWorld.h"
 #include "FileDump.h"
 
-#include <Framework/IO/Public/FileUrl.h>
+#include <Engine/IO/Public/FileUrl.h>
 
 void FCameraRecord::LoadRecord( const char * _FileName ) {
     FFileAbstract * File = FFiles::OpenFileFromUrl( _FileName, FFileAbstract::M_Read );
@@ -36,7 +36,7 @@ void FCameraRecord::LoadRecord( const char * _FileName ) {
 
     SetDumpLog( true );
 
-    int32 LastFrameIndex;
+    int32_t LastFrameIndex;
     File->ReadSwapInt32( LastFrameIndex );
 
     Frames.Resize( LastFrameIndex + 1 );

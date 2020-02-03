@@ -24,15 +24,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <Framework/IO/Public/FileAbstract.h>
+#include <Engine/IO/Public/FileAbstract.h>
 
 void SetDumpLog( bool _Enable );
 void DumpUnknownBytes( FFileAbstract * _File, int _BytesCount );
 void DumpIntOrFloat( FFileAbstract * _File );
-int32 DumpInt( FFileAbstract * _File );
-int16 DumpShort( FFileAbstract * _File );
-int32 DumpIntNotSeek( FFileAbstract * _File );
-int32 DumpByte( FFileAbstract * _File );
+int32_t DumpInt( FFileAbstract * _File );
+int16_t DumpShort( FFileAbstract * _File );
+int32_t DumpIntNotSeek( FFileAbstract * _File );
+int32_t DumpByte( FFileAbstract * _File );
 float DumpFloat( FFileAbstract * _File );
 double DumpDouble( FFileAbstract * _File );
 FString DumpString( FFileAbstract * _File );

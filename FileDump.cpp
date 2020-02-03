@@ -43,7 +43,7 @@ void DumpUnknownBytes( FFileAbstract * _File, int _BytesCount ) {
 }
 
 void DumpIntOrFloat( FFileAbstract * _File ) {
-    int32 Unknown;
+    int32_t Unknown;
     Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt32( Unknown );
     if ( DumpLogEnabled ) {
@@ -51,8 +51,8 @@ void DumpIntOrFloat( FFileAbstract * _File ) {
     }
 }
 
-int32 DumpInt( FFileAbstract * _File ) {
-    int32 Unknown;
+int32_t DumpInt( FFileAbstract * _File ) {
+    int32_t Unknown;
     Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt32( Unknown );
     if ( DumpLogEnabled ) {
@@ -61,8 +61,8 @@ int32 DumpInt( FFileAbstract * _File ) {
     return Unknown;
 }
 
-int16 DumpShort( FFileAbstract * _File ) {
-    int16 Unknown;
+int16_t DumpShort( FFileAbstract * _File ) {
+    int16_t Unknown;
     Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt16( Unknown );
     if ( DumpLogEnabled ) {
@@ -71,8 +71,8 @@ int16 DumpShort( FFileAbstract * _File ) {
     return Unknown;
 }
 
-int32 DumpIntNotSeek( FFileAbstract * _File ) {
-    int32 Unknown;
+int32_t DumpIntNotSeek( FFileAbstract * _File ) {
+    int32_t Unknown;
     Byte * pUnknown = (Byte *)&Unknown;
     _File->ReadSwapInt32( Unknown );
     if ( DumpLogEnabled ) {
@@ -82,7 +82,7 @@ int32 DumpIntNotSeek( FFileAbstract * _File ) {
     return Unknown;
 }
 
-int32 DumpByte( FFileAbstract * _File ) {
+int32_t DumpByte( FFileAbstract * _File ) {
     Byte Unknown;
     _File->Read( &Unknown, 1 );
     if ( DumpLogEnabled ) {
